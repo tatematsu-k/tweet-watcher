@@ -105,5 +105,16 @@ def update_setting(args):
         return slack_response(f"[update] エラー: {str(e)}")
 
 def delete_setting(args):
-    # TODO: 実装
-    return slack_response("[delete] 未実装")
+    if len(args) != 2:
+        return slack_response("[delete] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
+    keyword, slack_ch = args
+    table = dynamodb.Table(SETTINGS_TABLE)
+    try:
+        # 既存チェック
+        resp = table.get_item(Key={"keyword": keyword, "slack_ch": slack_ch})
+        if "Item" not in resp:
+            return slack_response(f"[delete] 該当設定がありません: {keyword} {slack_ch}")
+        table.delete_item(Key={"keyword": keyword, "slack_ch": slack_ch})
+        return slack_response(f"[delete] 削除しました: {keyword} {slack_ch}")
+    except Exception as e:
+        return slack_response(f"[delete] エラー: {str(e)}")
