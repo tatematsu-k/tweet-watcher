@@ -21,6 +21,15 @@ Resources:
         - AttributeName: slack_ch
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: end_at-index
+          KeySchema:
+            - AttributeName: end_at
+              KeyType: HASH
+            - AttributeName: keyword
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
 
   NotificationsTable:
     Type: AWS::DynamoDB::Table
