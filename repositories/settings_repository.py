@@ -50,3 +50,6 @@ class SettingsRepository:
     def query_by_keyword(self, keyword):
         from boto3.dynamodb.conditions import Key
         return self.table.query(IndexName="keyword-index", KeyConditionExpression=Key('keyword').eq(keyword))
+
+    def list_all(self):
+        return self.table.scan()

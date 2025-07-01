@@ -58,19 +58,29 @@ def create_setting(args, integration):
         return integration.build_response(f"[create] エラー: {str(e)}")
 
 def get_setting(args, integration):
-    if len(args) != 1:
-        return integration.build_response("[read] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
-    keyword = args[0]
     settings_repo = SettingsRepository()
     try:
-        resp = settings_repo.query_by_keyword(keyword)
-        items = resp.get('Items', [])
-        if not items:
-            return integration.build_response(f"[read] 該当設定がありません: {keyword}")
-        msg = "[read] 設定一覧:\n" + "\n".join([
-            f"{item['keyword']} {item['slack_ch']} {item['end_at']}" for item in items
-        ])
-        return integration.build_response(msg)
+        if len(args) == 1:
+            keyword = args[0]
+            resp = settings_repo.query_by_keyword(keyword)
+            items = resp.get('Items', [])
+            if not items:
+                return integration.build_response(f"[read] 該当設定がありません: {keyword}")
+            msg = "[read] 設定一覧:\n" + "\n".join([
+                f"{item['keyword']} {item['slack_ch']} {item['end_at']}" for item in items
+            ])
+            return integration.build_response(msg)
+        elif len(args) == 0:
+            resp = settings_repo.list_all()
+            items = resp.get('Items', [])
+            if not items:
+                return integration.build_response("[read] 設定が1件もありません")
+            msg = "[read] 全設定一覧:\n" + "\n".join([
+                f"{item['keyword']} {item['slack_ch']} {item['end_at']}" for item in items
+            ])
+            return integration.build_response(msg)
+        else:
+            return integration.build_response("[read] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
     except Exception as e:
         return integration.build_response(f"[read] エラー: {str(e)}")
 
