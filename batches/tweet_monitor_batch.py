@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from repositories.settings_repository import SettingsRepository
+from repositories.notifications_repository import NotificationsRepository
 import os
 import tweepy
 
@@ -55,6 +56,7 @@ def lambda_handler(event, context):
     print(f"[BatchWatcher] 有効な設定: {valid_settings}")
 
     # 各設定ごとにキーワード検索
+    notifications_repo = NotificationsRepository()
     for setting in valid_settings:
         keyword = setting.get("keyword")
         slack_ch = setting.get("slack_ch")
@@ -63,7 +65,14 @@ def lambda_handler(event, context):
         print(f"[BatchWatcher] 検索結果: {tweets}")
         filtered_tweets = filter_tweets_by_thresholds(tweets, like_threshold, retweet_threshold)
         print(f"[BatchWatcher] 閾値通過ツイート: {filtered_tweets}")
-        # TODO: 通知テーブルに新規tweetを保存（重複防止）
+        for tweet in filtered_tweets:
+            tweet_uid = str(tweet.id) if hasattr(tweet, 'id') else tweet.get('id')
+            tweet_url = f"https://twitter.com/i/web/status/{tweet_uid}"
+            if not notifications_repo.exists(tweet_uid, slack_ch):
+                notifications_repo.put(tweet_uid, tweet_url, slack_ch)
+                print(f"[BatchWatcher] 通知テーブルに保存: {tweet_uid} {tweet_url} {slack_ch}")
+            else:
+                print(f"[BatchWatcher] 既に通知済み: {tweet_uid} {slack_ch}")
 
     print("[BatchWatcher] Triggered by EventBridge schedule.")
     return {"statusCode": 200, "body": "Batch executed."}
