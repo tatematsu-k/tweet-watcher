@@ -95,6 +95,11 @@ Resources:
         Variables:
           LIKE_THRESHOLD: "10"
           RETWEET_THRESHOLD: "5"
+          TWITTER_BEARER_TOKEN: ""
+          TWITTER_CONSUMER_KEY: ""
+          TWITTER_CONSUMER_SECRET: ""
+          TWITTER_ACCESS_TOKEN: ""
+          TWITTER_ACCESS_TOKEN_SECRET: ""
       Events:
         Schedule:
           Type: Schedule

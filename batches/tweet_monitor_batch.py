@@ -3,6 +3,12 @@ from repositories.settings_repository import SettingsRepository
 from repositories.notifications_repository import NotificationsRepository
 import os
 import tweepy
+# .env自動ロード（ローカル開発用）
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 def get_thresholds():
     """
@@ -30,7 +36,7 @@ def get_valid_settings():
     now_iso = now.isoformat()
     return repo.list_valid_settings(now_iso).get('Items', [])
 
-def search_tweets_by_keyword(client, keyword, max_results=10):
+def search_tweets_by_keyword(client, keyword, max_results=30):
     """
     指定キーワードでTwitter検索を行う
     """
