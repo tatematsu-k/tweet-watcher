@@ -129,9 +129,3 @@ sam delete --stack-name "tweet-watcher"
 See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
 
 Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
-
-## 開発環境・バージョン
-
-- Python 3.11 系を推奨（moto 等のテスト互換性のため）
-- Lambda Runtime も python3.11 を指定
-- pyenv 例: `pyenv install 3.11.9 && pyenv local 3.11.9`

@@ -15,10 +15,10 @@
 
 ## 3. API Gateway + Lambda（設定テーブル CRUD 用 API）
 
-- [x] Slack コマンドから API Gateway 経由で設定テーブルの CRUD 操作
-- [x] Lambda で CRUD ロジック実装
-- [x] API Gateway のエンドポイント設計
-- [x] Slack コマンドのリクエスト検証
+- [ ] Slack コマンドから API Gateway 経由で設定テーブルの CRUD 操作
+- [ ] Lambda で CRUD ロジック実装
+- [ ] API Gateway のエンドポイント設計
+- [ ] Slack コマンドのリクエスト検証
 
 ## 4. EventBridge + Lambda（定期実行バッチ）
 

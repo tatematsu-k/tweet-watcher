@@ -9,8 +9,6 @@ Resources:
     Properties:
       TableName: SettingsTable
       AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
         - AttributeName: keyword
           AttributeType: S
         - AttributeName: slack_ch
@@ -18,18 +16,11 @@ Resources:
         - AttributeName: end_at
           AttributeType: S
       KeySchema:
-        - AttributeName: id
+        - AttributeName: keyword
           KeyType: HASH
+        - AttributeName: slack_ch
+          KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
-      GlobalSecondaryIndexes:
-        - IndexName: keyword-index
-          KeySchema:
-            - AttributeName: keyword
-              KeyType: HASH
-            - AttributeName: slack_ch
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
 
   NotificationsTable:
     Type: AWS::DynamoDB::Table
@@ -53,7 +44,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: settings_api.lambda_handler
-      Runtime: python3.11
+      Runtime: python3.13
       CodeUri: settings_api/
       Policies:
         - DynamoDBCrudPolicy:
