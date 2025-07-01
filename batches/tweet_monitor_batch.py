@@ -1,7 +1,12 @@
 from datetime import datetime, timezone
 from repositories.settings_repository import SettingsRepository
+import os
 
 def lambda_handler(event, context):
+    # 閾値を環境変数から取得
+    like_threshold = int(os.environ.get("LIKE_THRESHOLD", "10"))
+    retweet_threshold = int(os.environ.get("RETWEET_THRESHOLD", "5"))
+    print(f"[BatchWatcher] LIKE閾値: {like_threshold}, RT閾値: {retweet_threshold}")
     # 設定テーブルから有効な設定を列挙
     repo = SettingsRepository()
     now = datetime.now(timezone.utc)

@@ -91,6 +91,10 @@ Resources:
             TableName: !Ref SettingsTable
         - DynamoDBCrudPolicy:
             TableName: !Ref NotificationsTable
+      Environment:
+        Variables:
+          LIKE_THRESHOLD: "10"
+          RETWEET_THRESHOLD: "5"
       Events:
         Schedule:
           Type: Schedule
