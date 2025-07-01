@@ -49,11 +49,11 @@ def create_setting(args, integration):
         return integration.build_response(f"[create] {str(e)}")
     settings_repo = SettingsRepository()
     try:
-        resp = settings_repo.get_item(keyword, slack_ch)
-        if "Item" in resp:
+        # keyword+slack_ch重複チェック
+        if settings_repo.get_by_keyword_slackch(keyword, slack_ch):
             return integration.build_response(f"[create] 既に登録済みです: {keyword} {slack_ch}")
-        settings_repo.put_item(keyword, slack_ch, end_at_iso)
-        return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} {end_at_iso}")
+        id = settings_repo.put(keyword, slack_ch, end_at_iso)
+        return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} {end_at_iso} (id: {id})")
     except Exception as e:
         return integration.build_response(f"[create] エラー: {str(e)}")
 
