@@ -4,6 +4,8 @@ import boto3
 from datetime import datetime, timezone
 import re
 from common.datetime_util import parse_end_at
+from integration.integration_base import IntegrationBase
+from integration.slack_integration import SlackIntegration
 
 dynamodb = boto3.resource("dynamodb")
 SETTINGS_TABLE = os.environ.get("SETTINGS_TABLE", "SettingsTable")
