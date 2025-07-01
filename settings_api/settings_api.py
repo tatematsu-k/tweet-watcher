@@ -3,6 +3,7 @@ import os
 import boto3
 from datetime import datetime, timezone
 import re
+from common.datetime_util import parse_end_at
 
 dynamodb = boto3.resource("dynamodb")
 SETTINGS_TABLE = os.environ.get("SETTINGS_TABLE", "SettingsTable")
@@ -51,27 +52,6 @@ def help_text():
         "/tweet-watcher setting delete キーワード\n"
         "/tweet-watcher setting help"
     )
-
-def parse_end_at(end_at_str):
-    # 例: 2025-01-01, 2025-01-01T12:00, 2025-01-01T12:00:00+09:00 など対応
-    try:
-        # まずISO8601完全一致
-        try:
-            dt = datetime.fromisoformat(end_at_str)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt
-        except Exception:
-            pass
-        # YYYY-MM-DD形式
-        m = re.match(r"^(\\d{4})-(\\d{2})-(\\d{2})$", end_at_str)
-        if m:
-            dt = datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), tzinfo=timezone.utc)
-            return dt
-        # その他は失敗
-        raise ValueError
-    except Exception:
-        raise ValueError("end_atはISO8601形式の日付で指定してください 例: 2025-01-01 または 2025-01-01T12:00:00+09:00")
 
 def create_setting(args):
     if len(args) != 3:
