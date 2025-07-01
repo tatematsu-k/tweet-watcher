@@ -16,8 +16,14 @@
 
 ## 3. 権限設定（OAuth & Permissions）
 
-- `commands` 権限を追加
-- 必要に応じて `chat:write` なども追加
+- 必須: `commands`（スラッシュコマンド実行用）
+- 必須: `chat:write`（Lambda から Slack へメッセージ送信する場合）
+- 任意: `channels:read`（チャンネルリスト取得が必要な場合）
+- 任意: `users:read`（ユーザー情報取得が必要な場合）
+- 任意: `groups:read`（プライベートチャンネル情報取得が必要な場合）
+
+> 最低限、スラッシュコマンドのみであれば `commands` 権限のみで動作します。
+> Lambda から Slack 通知を送信する場合は `chat:write` も必須です。
 
 ## 4. App のインストール
 
