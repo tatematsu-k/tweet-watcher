@@ -15,9 +15,3 @@ class SlackIntegration(IntegrationBase):
             "headers": {"Content-Type": "text/plain"},
             "body": message
         }
-
-    def handle_input(self, data):
-        return data
-
-    def handle_output(self, result):
-        return result
