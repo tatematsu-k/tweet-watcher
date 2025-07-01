@@ -63,7 +63,7 @@ def get_setting(args, integration):
     keyword = args[0]
     settings_repo = SettingsRepository()
     try:
-        resp = settings_repo.query(keyword)
+        resp = settings_repo.query_by_keyword(keyword)
         items = resp.get('Items', [])
         if not items:
             return integration.build_response(f"[read] 該当設定がありません: {keyword}")
