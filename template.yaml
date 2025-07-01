@@ -70,3 +70,20 @@ Resources:
           Properties:
             Path: /settings
             Method: delete
+
+  BatchWatcherFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: batches.tweet_monitor_batch.lambda_handler
+      Runtime: python3.11
+      CodeUri: batches/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref SettingsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotificationsTable
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(15 minutes)
