@@ -66,8 +66,24 @@ def create_setting(args):
         return slack_response(f"[create] エラー: {str(e)}")
 
 def get_setting(args):
-    # TODO: 実装
-    return slack_response("[read] 未実装")
+    if len(args) != 1:
+        return slack_response("[read] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
+    keyword = args[0]
+    table = dynamodb.Table(SETTINGS_TABLE)
+    try:
+        # slack_chを指定しない場合、同キーワードの全設定を返す
+        resp = table.query(
+            KeyConditionExpression=boto3.dynamodb.conditions.Key('keyword').eq(keyword)
+        )
+        items = resp.get('Items', [])
+        if not items:
+            return slack_response(f"[read] 該当設定がありません: {keyword}")
+        msg = "[read] 設定一覧:\n" + "\n".join([
+            f"{item['keyword']} {item['slack_ch']} {item['end_at']}" for item in items
+        ])
+        return slack_response(msg)
+    except Exception as e:
+        return slack_response(f"[read] エラー: {str(e)}")
 
 def update_setting(args):
     # TODO: 実装
