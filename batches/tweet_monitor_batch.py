@@ -28,6 +28,16 @@ def search_tweets_by_keyword(client, keyword, max_results=10):
         print(f"[BatchWatcher] Twitter検索失敗: {e}")
         return []
 
+def filter_tweets_by_thresholds(tweets, like_threshold, retweet_threshold):
+    filtered = []
+    for tweet in tweets:
+        metrics = tweet.public_metrics if hasattr(tweet, 'public_metrics') else tweet.get('public_metrics', {})
+        like_count = metrics.get('like_count', 0)
+        retweet_count = metrics.get('retweet_count', 0)
+        if like_count >= like_threshold and retweet_count >= retweet_threshold:
+            filtered.append(tweet)
+    return filtered
+
 def lambda_handler(event, context):
     # 閾値取得
     like_threshold, retweet_threshold = get_thresholds()
@@ -51,7 +61,8 @@ def lambda_handler(event, context):
         print(f"[BatchWatcher] 検索キーワード: {keyword} (slack_ch: {slack_ch})")
         tweets = search_tweets_by_keyword(client, keyword)
         print(f"[BatchWatcher] 検索結果: {tweets}")
-        # TODO: like_count, retweet_countで閾値フィルタ
+        filtered_tweets = filter_tweets_by_thresholds(tweets, like_threshold, retweet_threshold)
+        print(f"[BatchWatcher] 閾値通過ツイート: {filtered_tweets}")
         # TODO: 通知テーブルに新規tweetを保存（重複防止）
 
     print("[BatchWatcher] Triggered by EventBridge schedule.")
