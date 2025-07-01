@@ -6,9 +6,7 @@ import re
 from common.datetime_util import parse_end_at
 from integration.integration_base import IntegrationBase
 from integration.slack_integration import SlackIntegration
-
-dynamodb = boto3.resource("dynamodb")
-SETTINGS_TABLE = os.environ.get("SETTINGS_TABLE", "SettingsTable")
+from repositories.settings_repository import SettingsRepository
 
 def lambda_handler(event, context):
     integration = SlackIntegration()
@@ -49,12 +47,12 @@ def create_setting(args, integration):
         end_at_iso = dt.isoformat()
     except ValueError as e:
         return integration.build_response(f"[create] {str(e)}")
-    table = dynamodb.Table(SETTINGS_TABLE)
+    settings_repo = SettingsRepository()
     try:
-        resp = table.get_item(Key={"keyword": keyword, "slack_ch": slack_ch})
+        resp = settings_repo.get_item(keyword, slack_ch)
         if "Item" in resp:
             return integration.build_response(f"[create] 既に登録済みです: {keyword} {slack_ch}")
-        table.put_item(Item={"keyword": keyword, "slack_ch": slack_ch, "end_at": end_at_iso})
+        settings_repo.put_item(keyword, slack_ch, end_at_iso)
         return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} {end_at_iso}")
     except Exception as e:
         return integration.build_response(f"[create] エラー: {str(e)}")
@@ -63,11 +61,9 @@ def get_setting(args, integration):
     if len(args) != 1:
         return integration.build_response("[read] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
     keyword = args[0]
-    table = dynamodb.Table(SETTINGS_TABLE)
+    settings_repo = SettingsRepository()
     try:
-        resp = table.query(
-            KeyConditionExpression=boto3.dynamodb.conditions.Key('keyword').eq(keyword)
-        )
+        resp = settings_repo.query(keyword)
         items = resp.get('Items', [])
         if not items:
             return integration.build_response(f"[read] 該当設定がありません: {keyword}")
@@ -87,16 +83,12 @@ def update_setting(args, integration):
         end_at_iso = dt.isoformat()
     except ValueError as e:
         return integration.build_response(f"[update] {str(e)}")
-    table = dynamodb.Table(SETTINGS_TABLE)
+    settings_repo = SettingsRepository()
     try:
-        resp = table.get_item(Key={"keyword": keyword, "slack_ch": slack_ch})
+        resp = settings_repo.get_item(keyword, slack_ch)
         if "Item" not in resp:
             return integration.build_response(f"[update] 該当設定がありません: {keyword} {slack_ch}")
-        table.update_item(
-            Key={"keyword": keyword, "slack_ch": slack_ch},
-            UpdateExpression="SET end_at = :end_at",
-            ExpressionAttributeValues={":end_at": end_at_iso}
-        )
+        settings_repo.update_item(keyword, slack_ch, end_at_iso)
         return integration.build_response(f"[update] 更新しました: {keyword} {slack_ch} {end_at_iso}")
     except Exception as e:
         return integration.build_response(f"[update] エラー: {str(e)}")
@@ -105,12 +97,12 @@ def delete_setting(args, integration):
     if len(args) != 2:
         return integration.build_response("[delete] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
     keyword, slack_ch = args
-    table = dynamodb.Table(SETTINGS_TABLE)
+    settings_repo = SettingsRepository()
     try:
-        resp = table.get_item(Key={"keyword": keyword, "slack_ch": slack_ch})
+        resp = settings_repo.get_item(keyword, slack_ch)
         if "Item" not in resp:
             return integration.build_response(f"[delete] 該当設定がありません: {keyword} {slack_ch}")
-        table.delete_item(Key={"keyword": keyword, "slack_ch": slack_ch})
+        settings_repo.delete_item(keyword, slack_ch)
         return integration.build_response(f"[delete] 削除しました: {keyword} {slack_ch}")
     except Exception as e:
         return integration.build_response(f"[delete] エラー: {str(e)}")
