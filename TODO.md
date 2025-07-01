@@ -2,8 +2,8 @@
 
 ## 1. SAM プロジェクトの初期セットアップ
 
-- [ ] SAM テンプレート（template.yaml）の設計
-- [ ] 必要なリソース（Lambda, API Gateway, EventBridge, DynamoDB, IAM ロールなど）の定義
+- [x] SAM テンプレート（template.yaml）の設計
+- [x] 必要なリソース（Lambda, API Gateway, EventBridge, DynamoDB, IAM ロールなど）の定義
 
 ## 2. DynamoDB テーブル設計・作成
 
