@@ -24,10 +24,10 @@
 
 - [x] EventBridge で 15 分間隔のスケジュールイベント作成
 - [x] Lambda で以下の処理を実装
-  - [ ] 設定テーブルから有効な設定を列挙
-  - [ ] 各設定ごとに X（Twitter）API でキーワード検索
-    - [ ] like_count, retweet_count で閾値フィルタ
-  - [ ] 通知テーブルに新規 tweet を保存（重複防止）
+  - [x] 設定テーブルから有効な設定を列挙
+  - [x] 各設定ごとに X（Twitter）API でキーワード検索
+    - [x] like_count, retweet_count で閾値フィルタ
+  - [x] 通知テーブルに新規 tweet を保存（重複防止）
 
 ## 5. DynamoDB Streams + Lambda（通知 →Slack）
 
