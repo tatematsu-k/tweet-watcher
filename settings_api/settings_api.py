@@ -33,7 +33,7 @@ def help_text():
         "例:\n"
         "/tweet-watcher setting create キーワード #slackチャンネル 2024-12-31\n"
         "/tweet-watcher setting read キーワード\n"
-        "/tweet-watcher setting update id 2025-01-01\n"
+        "/tweet-watcher setting update id 新キーワード 2025-01-01\n"
         "/tweet-watcher setting delete id\n"
         "/tweet-watcher setting help"
     )
@@ -75,9 +75,9 @@ def get_setting(args, integration):
         return integration.build_response(f"[read] エラー: {str(e)}")
 
 def update_setting(args, integration):
-    if len(args) != 2:
-        return integration.build_response("[update] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。\n例: /tweet-watcher setting update id 2025-01-01")
-    id, end_at = args
+    if len(args) != 3:
+        return integration.build_response("[update] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。\n例: /tweet-watcher setting update id 新キーワード 2025-01-01")
+    id, new_keyword, end_at = args
     try:
         dt = parse_end_at(end_at)
         end_at_iso = dt.isoformat()
@@ -88,8 +88,8 @@ def update_setting(args, integration):
         resp = settings_repo.get_by_id(id)
         if "Item" not in resp:
             return integration.build_response(f"[update] 該当設定がありません: id={id}")
-        settings_repo.update_by_id(id, end_at_iso)
-        return integration.build_response(f"[update] 更新しました: id={id} {end_at_iso}")
+        settings_repo.update_by_id(id, end_at_iso, new_keyword)
+        return integration.build_response(f"[update] 更新しました: id={id} {new_keyword} {end_at_iso}")
     except Exception as e:
         return integration.build_response(f"[update] エラー: {str(e)}")
 

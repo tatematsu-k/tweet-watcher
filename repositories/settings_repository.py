@@ -35,11 +35,13 @@ class SettingsRepository:
         self.table.put_item(Item={"id": id, "keyword": keyword, "slack_ch": slack_ch, "end_at": end_at})
         return id
 
-    def update_by_id(self, id, end_at):
+    def update_by_id(self, id, end_at, keyword):
+        update_expr = "SET end_at = :end_at, keyword = :keyword"
+        expr_attr = {":end_at": end_at, ":keyword": keyword}
         return self.table.update_item(
             Key={"id": id},
-            UpdateExpression="SET end_at = :end_at",
-            ExpressionAttributeValues={":end_at": end_at}
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_attr
         )
 
     def delete_by_id(self, id):
