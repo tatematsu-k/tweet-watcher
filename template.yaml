@@ -39,3 +39,34 @@ Resources:
       BillingMode: PAY_PER_REQUEST
       StreamSpecification:
         StreamViewType: NEW_IMAGE
+
+  SettingsApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: settings_api.lambda_handler
+      Runtime: python3.13
+      CodeUri: settings_api/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SettingsTable
+      Events:
+        GetSettings:
+          Type: Api
+          Properties:
+            Path: /settings
+            Method: get
+        CreateSetting:
+          Type: Api
+          Properties:
+            Path: /settings
+            Method: post
+        UpdateSetting:
+          Type: Api
+          Properties:
+            Path: /settings
+            Method: put
+        DeleteSetting:
+          Type: Api
+          Properties:
+            Path: /settings
+            Method: delete
