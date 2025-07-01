@@ -1,6 +1,8 @@
 import json
 import os
 import boto3
+from datetime import datetime, timezone
+import re
 
 dynamodb = boto3.resource("dynamodb")
 SETTINGS_TABLE = os.environ.get("SETTINGS_TABLE", "SettingsTable")
@@ -50,18 +52,43 @@ def help_text():
         "/tweet-watcher setting help"
     )
 
+def parse_end_at(end_at_str):
+    # 例: 2025-01-01, 2025-01-01T12:00, 2025-01-01T12:00:00+09:00 など対応
+    try:
+        # まずISO8601完全一致
+        try:
+            dt = datetime.fromisoformat(end_at_str)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except Exception:
+            pass
+        # YYYY-MM-DD形式
+        m = re.match(r"^(\\d{4})-(\\d{2})-(\\d{2})$", end_at_str)
+        if m:
+            dt = datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), tzinfo=timezone.utc)
+            return dt
+        # その他は失敗
+        raise ValueError
+    except Exception:
+        raise ValueError("end_atはISO8601形式の日付で指定してください 例: 2025-01-01 または 2025-01-01T12:00:00+09:00")
+
 def create_setting(args):
     if len(args) != 3:
         return slack_response("[create] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
     keyword, slack_ch, end_at = args
+    try:
+        dt = parse_end_at(end_at)
+        end_at_iso = dt.isoformat()
+    except ValueError as e:
+        return slack_response(f"[create] {str(e)}")
     table = dynamodb.Table(SETTINGS_TABLE)
-    # 既存チェック
     try:
         resp = table.get_item(Key={"keyword": keyword, "slack_ch": slack_ch})
         if "Item" in resp:
             return slack_response(f"[create] 既に登録済みです: {keyword} {slack_ch}")
-        table.put_item(Item={"keyword": keyword, "slack_ch": slack_ch, "end_at": end_at})
-        return slack_response(f"[create] 登録しました: {keyword} {slack_ch} {end_at}")
+        table.put_item(Item={"keyword": keyword, "slack_ch": slack_ch, "end_at": end_at_iso})
+        return slack_response(f"[create] 登録しました: {keyword} {slack_ch} {end_at_iso}")
     except Exception as e:
         return slack_response(f"[create] エラー: {str(e)}")
 
@@ -89,18 +116,22 @@ def update_setting(args):
     if len(args) != 3:
         return slack_response("[update] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
     keyword, slack_ch, end_at = args
+    try:
+        dt = parse_end_at(end_at)
+        end_at_iso = dt.isoformat()
+    except ValueError as e:
+        return slack_response(f"[update] {str(e)}")
     table = dynamodb.Table(SETTINGS_TABLE)
     try:
-        # 既存チェック
         resp = table.get_item(Key={"keyword": keyword, "slack_ch": slack_ch})
         if "Item" not in resp:
             return slack_response(f"[update] 該当設定がありません: {keyword} {slack_ch}")
         table.update_item(
             Key={"keyword": keyword, "slack_ch": slack_ch},
             UpdateExpression="SET end_at = :end_at",
-            ExpressionAttributeValues={":end_at": end_at}
+            ExpressionAttributeValues={":end_at": end_at_iso}
         )
-        return slack_response(f"[update] 更新しました: {keyword} {slack_ch} {end_at}")
+        return slack_response(f"[update] 更新しました: {keyword} {slack_ch} {end_at_iso}")
     except Exception as e:
         return slack_response(f"[update] エラー: {str(e)}")
 
