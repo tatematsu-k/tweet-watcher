@@ -86,8 +86,23 @@ def get_setting(args):
         return slack_response(f"[read] エラー: {str(e)}")
 
 def update_setting(args):
-    # TODO: 実装
-    return slack_response("[update] 未実装")
+    if len(args) != 3:
+        return slack_response("[update] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
+    keyword, slack_ch, end_at = args
+    table = dynamodb.Table(SETTINGS_TABLE)
+    try:
+        # 既存チェック
+        resp = table.get_item(Key={"keyword": keyword, "slack_ch": slack_ch})
+        if "Item" not in resp:
+            return slack_response(f"[update] 該当設定がありません: {keyword} {slack_ch}")
+        table.update_item(
+            Key={"keyword": keyword, "slack_ch": slack_ch},
+            UpdateExpression="SET end_at = :end_at",
+            ExpressionAttributeValues={":end_at": end_at}
+        )
+        return slack_response(f"[update] 更新しました: {keyword} {slack_ch} {end_at}")
+    except Exception as e:
+        return slack_response(f"[update] エラー: {str(e)}")
 
 def delete_setting(args):
     # TODO: 実装
