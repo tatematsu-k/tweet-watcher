@@ -1,7 +1,7 @@
 import os
 import sys
 import pytest
-from moto import mock_dynamodb
+from moto import mock_aws
 import boto3
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from repositories.settings_repository import SettingsRepository
@@ -14,7 +14,7 @@ TABLE_NAME = "SettingsTable"
 @pytest.fixture(autouse=True)
 def setup_dynamodb():
     os.environ["AWS_DEFAULT_REGION"] = "ap-northeast-1"
-    with mock_dynamodb():
+    with mock_aws():
         dynamodb = boto3.resource("dynamodb", region_name="ap-northeast-1")
         dynamodb.create_table(
             TableName=TABLE_NAME,
