@@ -74,9 +74,9 @@ Resources:
   BatchWatcherFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: integration.batch_watcher.lambda_handler
+      Handler: batches.tweet_monitor_batch.lambda_handler
       Runtime: python3.11
-      CodeUri: integration/
+      CodeUri: batches/
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref SettingsTable
