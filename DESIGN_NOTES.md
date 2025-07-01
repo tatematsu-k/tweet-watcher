@@ -17,7 +17,13 @@
 ## 3. コード設計
 
 - Integration 基底クラスで input/output を抽象化し、Slack 以外の拡張も容易に
-- SettingsRepository で DynamoDB アクセスを集約
+  - 例：SlackIntegration, 今後の他チャットサービスや API 連携にも対応可能
+  - lambda_handler や各ロジックは Integration 経由で入出力を統一
+  - input の parse, output の build_response をインターフェイス化
+- Repository レイヤー（SettingsRepository）で DynamoDB アクセスを集約
+  - ストレージ操作を 1 箇所にまとめることで、ビジネスロジックと分離
+  - DynamoDB 以外のストレージやテスト用モックへの差し替えも容易
+  - API 層は Repository 経由でデータ操作することで責務分離・テスト容易化
 - parse_end_at 等の共通処理は common 配下に分離
 
 ## 4. その他
