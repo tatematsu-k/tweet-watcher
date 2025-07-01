@@ -7,11 +7,11 @@
 
 ## 2. DynamoDB テーブル設計・作成
 
-- [ ] 設定テーブル
-  - [ ] 属性: キーワード(string), slack ch(string), 終了日時(datetime)
-- [ ] 通知テーブル
-  - [ ] 属性: tweet_url(string), tweet_uid(string), notified_at(datetime), slack ch(string)
-- [ ] DynamoDB Streams の有効化（通知テーブル）
+- [x] 設定テーブル
+  - [x] 属性: キーワード(string), slack ch(string), 終了日時(datetime)
+- [x] 通知テーブル
+  - [x] 属性: tweet_url(string), tweet_uid(string), notified_at(datetime), slack ch(string)
+- [x] DynamoDB Streams の有効化（通知テーブル）
 
 ## 3. API Gateway + Lambda（設定テーブル CRUD 用 API）
 
