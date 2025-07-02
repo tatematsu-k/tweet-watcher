@@ -1,3 +1,4 @@
 boto3
 tweepy
 python-dotenv
+moto>=4.0.0
