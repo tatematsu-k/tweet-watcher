@@ -3,9 +3,9 @@ import sys
 import pytest
 from moto import mock_dynamodb
 import boto3
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
 from repositories.settings_repository import SettingsRepository
-from settings_api import settings_api
+from lambda_functions.api_gateway import settings_api
 from integration.integration_base import IntegrationBase
 from integration.slack_integration import SlackIntegration
 
