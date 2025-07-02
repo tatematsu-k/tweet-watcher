@@ -120,7 +120,6 @@ Resources:
         # Slack通知用の外部APIアクセス権限が必要なら追加
       Environment:
         Variables:
-          SLACK_WEBHOOK_URL: ""
           NOTIFICATIONS_TABLE: !Ref NotificationsTable
       Events:
         Stream:
