@@ -1,6 +1,6 @@
 import os
 from unittest.mock import patch, MagicMock
-from batches import notify_slack_stream
+from lambda_functions.dynamodb_stream import notify_slack_stream
 
 def make_stream_event(tweet_uid, tweet_url, slack_ch, notified_at=None):
     new_image = {
@@ -19,7 +19,7 @@ def make_stream_event(tweet_uid, tweet_url, slack_ch, notified_at=None):
         ]
     }
 
-@patch("batches.notify_slack_stream.SlackIntegration")
+@patch("lambda_functions.dynamodb_stream.notify_slack_stream.SlackIntegration")
 @patch("boto3.resource")
 def test_notify_and_update(mock_boto3_resource, mock_slack_integration):
     # モック準備
@@ -40,7 +40,7 @@ def test_notify_and_update(mock_boto3_resource, mock_slack_integration):
     assert kwargs["ExpressionAttributeValues"][":ts"] == "12345.6789"
     assert result["statusCode"] == 200
 
-@patch("batches.notify_slack_stream.SlackIntegration")
+@patch("lambda_functions.dynamodb_stream.notify_slack_stream.SlackIntegration")
 @patch("boto3.resource")
 def test_idempotency(mock_boto3_resource, mock_slack_integration):
     # notified_atが既に埋まっている場合は何もしない

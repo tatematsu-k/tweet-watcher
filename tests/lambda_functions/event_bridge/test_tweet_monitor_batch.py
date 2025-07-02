@@ -1,5 +1,5 @@
 import pytest
-from batches import tweet_monitor_batch
+from lambda_functions.event_bridge import tweet_monitor_batch
 
 class MockTweet:
     def __init__(self, id, like, retweet):

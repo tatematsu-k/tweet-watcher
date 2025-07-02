@@ -54,9 +54,9 @@ Resources:
   SettingsApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: settings_api.lambda_handler
+      Handler: lambda_functions.api_gateway.settings_api.lambda_handler
       Runtime: python3.13
-      CodeUri: settings_api/
+      CodeUri: lambda_functions/api_gateway/
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref SettingsTable
@@ -85,9 +85,9 @@ Resources:
   BatchWatcherFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: batches.tweet_monitor_batch.lambda_handler
+      Handler: lambda_functions.event_bridge.tweet_monitor_batch.lambda_handler
       Runtime: python3.11
-      CodeUri: batches/
+      CodeUri: lambda_functions/event_bridge/
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref SettingsTable
@@ -111,9 +111,9 @@ Resources:
   NotifySlackFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: batches.notify_slack_stream.lambda_handler
+      Handler: lambda_functions.dynamodb_stream.notify_slack_stream.lambda_handler
       Runtime: python3.11
-      CodeUri: batches/
+      CodeUri: lambda_functions/dynamodb_stream/
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref NotificationsTable
