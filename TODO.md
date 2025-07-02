@@ -31,10 +31,10 @@
 
 ## 5. DynamoDB Streams + Lambda（通知 →Slack）
 
-- [ ] 通知テーブルの新規レコード追加をトリガー
-- [ ] Lambda で Slack 通知送信
-- [ ] 通知送信後、notified_at を更新
-- [ ] 多重実行防止ロジック
+- [x] 通知テーブルの新規レコード追加をトリガー
+- [x] Lambda で Slack 通知送信
+- [x] 通知送信後、notified_at を更新
+- [x] 多重実行防止ロジック
 
 ## 6. Slack 連携
 
