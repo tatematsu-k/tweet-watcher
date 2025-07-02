@@ -40,6 +40,8 @@ Resources:
           AttributeType: S
         - AttributeName: slack_ch
           AttributeType: S
+        - AttributeName: slack_message_ts
+          AttributeType: S
       KeySchema:
         - AttributeName: tweet_uid
           KeyType: HASH
@@ -105,3 +107,24 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: rate(15 minutes)
+
+  NotifySlackFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: batches.notify_slack_stream.lambda_handler
+      Runtime: python3.11
+      CodeUri: batches/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotificationsTable
+        # Slack通知用の外部APIアクセス権限が必要なら追加
+      Environment:
+        Variables:
+          SLACK_WEBHOOK_URL: ""
+          NOTIFICATIONS_TABLE: !Ref NotificationsTable
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt NotificationsTable.StreamArn
+            StartingPosition: LATEST
