@@ -183,4 +183,46 @@ sam deploy --guided
 - Lambda 関数は Secrets Manager から API キー等を取得して動作します
 - template.yaml で Secrets Manager へのアクセス権限が付与されていることを確認してください
 
+## システム構成図
+
+```mermaid
+flowchart TD
+  subgraph "User"
+    U1["Slack User"]
+  end
+  subgraph "Slack"
+    S1["Slack App"]
+  end
+  subgraph "AWS"
+    APIGW["API Gateway"]
+    LambdaAPI["Lambda: settings_api"]
+    LambdaBatch["Lambda: tweet_monitor_batch"]
+    LambdaStream["Lambda: notify_slack_stream"]
+    EventBridge["EventBridge (15分毎)"]
+    DDBSettings["DynamoDB: SettingsTable"]
+    DDBNotifications["DynamoDB: NotificationsTable + Streams"]
+    Secrets["Secrets Manager"]
+  end
+  subgraph "X"
+    XAPI["X(Twitter) API"]
+  end
+
+  U1--"Slackコマンド/通知"-->S1
+  S1--"APIリクエスト"-->APIGW
+  APIGW--"Invoke"-->LambdaAPI
+  LambdaAPI--"設定CRUD"-->DDBSettings
+  LambdaAPI--"Secrets取得"-->Secrets
+
+  EventBridge--"定期実行"-->LambdaBatch
+  LambdaBatch--"設定取得"-->DDBSettings
+  LambdaBatch--"ツイート検索/保存"-->DDBNotifications
+  LambdaBatch--"Secrets取得"-->Secrets
+  LambdaBatch--"検索"-->XAPI
+
+  DDBNotifications--"Stream"-->LambdaStream
+  LambdaStream--"Slack通知"-->S1
+  LambdaStream--"Secrets取得"-->Secrets
+  LambdaStream--"通知済み更新"-->DDBNotifications
+```
+
 ---
