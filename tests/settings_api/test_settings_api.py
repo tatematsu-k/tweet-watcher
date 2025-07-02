@@ -1,7 +1,7 @@
 import os
 import sys
 import pytest
-from moto import mock_aws
+from moto import mock_dynamodb
 import boto3
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from repositories.settings_repository import SettingsRepository
@@ -14,7 +14,7 @@ TABLE_NAME = "SettingsTable"
 @pytest.fixture(autouse=True)
 def setup_dynamodb():
     os.environ["AWS_DEFAULT_REGION"] = "ap-northeast-1"
-    with mock_aws():
+    with mock_dynamodb():
         dynamodb = boto3.resource("dynamodb", region_name="ap-northeast-1")
         dynamodb.create_table(
             TableName=TABLE_NAME,
@@ -63,8 +63,8 @@ def test_delete_by_id():
 
 def test_query_by_keyword():
     repo = SettingsRepository(TABLE_NAME)
-    id1 = repo.put("k1", "C1", "2024-01-01T00:00:00+09:00")
-    id2 = repo.put("k1", "C2", "2024-01-02T00:00:00+09:00")
+    repo.put('k1', 'C1', '2025-01-01T00:00:00Z')
+    repo.put('k1', 'C2', '2025-01-01T00:00:00Z')
     resp = repo.query_by_keyword("k1")
     items = resp.get("Items", [])
     assert len(items) == 2

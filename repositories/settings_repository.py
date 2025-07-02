@@ -1,6 +1,5 @@
 import os
 import boto3
-import uuid
 import random
 import string
 
@@ -53,3 +52,10 @@ class SettingsRepository:
 
     def list_all(self):
         return self.table.scan()
+
+    def list_valid_settings(self, now_iso):
+        from boto3.dynamodb.conditions import Key
+        return self.table.query(
+            IndexName="end_at-index",
+            KeyConditionExpression=Key('end_at').gt(now_iso)
+        )

@@ -1,1 +1,5 @@
 boto3
+python-dotenv
+tweepy
+pytest==8.4.1
+moto[all]==4.2.13

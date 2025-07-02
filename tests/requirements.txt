@@ -1,3 +1,0 @@
-pytest==8.4.1
-boto3
-moto[all]==4.2.13
