@@ -40,6 +40,8 @@ Resources:
           AttributeType: S
         - AttributeName: slack_ch
           AttributeType: S
+        - AttributeName: slack_message_ts
+          AttributeType: S
       KeySchema:
         - AttributeName: tweet_uid
           KeyType: HASH

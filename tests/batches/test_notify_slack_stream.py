@@ -1,5 +1,4 @@
 import os
-import pytest
 from unittest.mock import patch, MagicMock
 from batches import notify_slack_stream
 
@@ -27,15 +26,18 @@ def test_notify_and_update(mock_boto3_resource, mock_slack_integration):
     mock_table = MagicMock()
     mock_boto3_resource.return_value.Table.return_value = mock_table
     mock_slack = MagicMock()
+    mock_slack.send_message.return_value = "12345.6789"
     mock_slack_integration.return_value = mock_slack
     os.environ["NOTIFICATIONS_TABLE"] = "NotificationsTable"
-    os.environ["SLACK_WEBHOOK_URL"] = "dummy"
+    os.environ["SLACK_BOT_TOKEN"] = "dummy"
 
     event = make_stream_event("uid1", "https://x.com/1", "C12345")
     result = notify_slack_stream.lambda_handler(event, None)
 
     mock_slack.send_message.assert_called_once_with("C12345", "新しいツイート通知: https://x.com/1")
     mock_table.update_item.assert_called_once()
+    args, kwargs = mock_table.update_item.call_args
+    assert kwargs["ExpressionAttributeValues"][":ts"] == "12345.6789"
     assert result["statusCode"] == 200
 
 @patch("batches.notify_slack_stream.SlackIntegration")
@@ -47,7 +49,7 @@ def test_idempotency(mock_boto3_resource, mock_slack_integration):
     mock_slack = MagicMock()
     mock_slack_integration.return_value = mock_slack
     os.environ["NOTIFICATIONS_TABLE"] = "NotificationsTable"
-    os.environ["SLACK_WEBHOOK_URL"] = "dummy"
+    os.environ["SLACK_BOT_TOKEN"] = "dummy"
 
     event = make_stream_event("uid2", "https://x.com/2", "C12345", notified_at="2024-07-01T00:00:00Z")
     result = notify_slack_stream.lambda_handler(event, None)
