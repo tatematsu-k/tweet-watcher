@@ -1,16 +1,45 @@
-import json
 import os
-import boto3
-from datetime import datetime, timezone
-import re
-from common.datetime_util import parse_end_at
-from integration.integration_base import IntegrationBase
+import hmac
+import hashlib
+import time
+import logging
 from integration.slack_integration import SlackIntegration
 from repositories.settings_repository import SettingsRepository
+from common.datetime_util import parse_end_at
+
+def get_slack_signing_secret():
+    return os.environ.get("SLACK_SIGNING_SECRET")
+
+def verify_slack_request(headers, body, signing_secret):
+    timestamp = headers.get("X-Slack-Request-Timestamp")
+    slack_signature = headers.get("X-Slack-Signature")
+    if not timestamp or not slack_signature:
+        return False
+    # リプレイ攻撃対策: 5分以上前のリクエストは拒否
+    if abs(time.time() - int(timestamp)) > 60 * 5:
+        return False
+    sig_basestring = f"v0:{timestamp}:{body}".encode("utf-8")
+    my_signature = "v0=" + hmac.new(
+        signing_secret.encode("utf-8"),
+        sig_basestring,
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(my_signature, slack_signature)
 
 def lambda_handler(event, context):
+    # Slack署名検証
+    signing_secret = get_slack_signing_secret()
+    headers = event.get("headers", {})
+    body = event.get("body", "")
+    if not verify_slack_request(headers, body, signing_secret):
+        return {
+            "statusCode": 401,
+            "body": "Invalid Slack signature."
+        }
     integration = SlackIntegration()
     args = integration.parse_input(event)
+
+    print(f"request with args: {args}, body: {body}")
     if len(args) < 2 or args[0] != "setting":
         return integration.build_response("コマンド形式が正しくありません。/tweet-watcher setting help を参照してください。")
     action = args[1]
@@ -31,9 +60,9 @@ def help_text():
     return (
         "使い方: /tweet-watcher setting [create|read|update|delete|help] ...\n"
         "例:\n"
-        "/tweet-watcher setting create キーワード #slackチャンネル 2024-12-31\n"
-        "/tweet-watcher setting read キーワード\n"
-        "/tweet-watcher setting update id 新キーワード 2025-01-01\n"
+        "/tweet-watcher setting create 'キーワード1 キーワード2' #slackチャンネル 2024-12-31\n"
+        "/tweet-watcher setting read 'キーワード'\n"
+        "/tweet-watcher setting update id '新キーワード' 2025-01-01\n"
         "/tweet-watcher setting delete id\n"
         "/tweet-watcher setting help"
     )
@@ -55,6 +84,7 @@ def create_setting(args, integration):
         id = settings_repo.put(keyword, slack_ch, end_at_iso)
         return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} {end_at_iso} (id: {id})")
     except Exception as e:
+        logging.error(f"[create] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[create] エラー: {str(e)}")
 
 def get_setting(args, integration):
@@ -82,6 +112,7 @@ def get_setting(args, integration):
         else:
             return integration.build_response("[read] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
     except Exception as e:
+        logging.error(f"[read] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[read] エラー: {str(e)}")
 
 def update_setting(args, integration):
@@ -101,6 +132,7 @@ def update_setting(args, integration):
         settings_repo.update_by_id(id, end_at_iso, new_keyword)
         return integration.build_response(f"[update] 更新しました: id={id} {new_keyword} {end_at_iso}")
     except Exception as e:
+        logging.error(f"[update] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[update] エラー: {str(e)}")
 
 def delete_setting(args, integration):
@@ -115,4 +147,5 @@ def delete_setting(args, integration):
         settings_repo.delete_by_id(id)
         return integration.build_response(f"[delete] 削除しました: id={id}")
     except Exception as e:
+        logging.error(f"[delete] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[delete] エラー: {str(e)}")

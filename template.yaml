@@ -3,6 +3,22 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   tweet-watcher
 
+Parameters:
+  SlackSigningSecret:
+    Type: String
+  SlackBotToken:
+    Type: String
+  TwitterBearerToken:
+    Type: String
+  TwitterConsumerKey:
+    Type: String
+  TwitterConsumerSecret:
+    Type: String
+  TwitterAccessToken:
+    Type: String
+  TwitterAccessTokenSecret:
+    Type: String
+
 Resources:
   SettingsTable:
     Type: AWS::DynamoDB::Table
@@ -50,16 +66,45 @@ Resources:
       BillingMode: PAY_PER_REQUEST
       StreamSpecification:
         StreamViewType: NEW_IMAGE
+      GlobalSecondaryIndexes:
+        - IndexName: slack_message_ts-index
+          KeySchema:
+            - AttributeName: slack_message_ts
+              KeyType: HASH
+            - AttributeName: tweet_uid
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  LibLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: LibLayer
+      Content: lib-layer.zip
+      CompatibleRuntimes:
+        - python3.13
+        - python3.11
 
   SettingsApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: lambda_functions.api_gateway.settings_api.lambda_handler
+      Handler: lambda_functions/api_gateway/settings_api.lambda_handler
       Runtime: python3.13
-      CodeUri: lambda_functions/api_gateway/
+      CodeUri: .
+      Layers:
+        - !Ref LibLayer
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref SettingsTable
+      Environment:
+        Variables:
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          SLACK_BOT_TOKEN: !Ref SlackBotToken
+          TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
+          TWITTER_CONSUMER_KEY: !Ref TwitterConsumerKey
+          TWITTER_CONSUMER_SECRET: !Ref TwitterConsumerSecret
+          TWITTER_ACCESS_TOKEN: !Ref TwitterAccessToken
+          TWITTER_ACCESS_TOKEN_SECRET: !Ref TwitterAccessTokenSecret
       Events:
         GetSettings:
           Type: Api
@@ -85,9 +130,11 @@ Resources:
   BatchWatcherFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: lambda_functions.event_bridge.tweet_monitor_batch.lambda_handler
+      Handler: lambda_functions/event_bridge/tweet_monitor_batch.lambda_handler
       Runtime: python3.11
-      CodeUri: lambda_functions/event_bridge/
+      CodeUri: .
+      Layers:
+        - !Ref LibLayer
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref SettingsTable
@@ -97,11 +144,13 @@ Resources:
         Variables:
           LIKE_THRESHOLD: "10"
           RETWEET_THRESHOLD: "5"
-          TWITTER_BEARER_TOKEN: ""
-          TWITTER_CONSUMER_KEY: ""
-          TWITTER_CONSUMER_SECRET: ""
-          TWITTER_ACCESS_TOKEN: ""
-          TWITTER_ACCESS_TOKEN_SECRET: ""
+          TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
+          TWITTER_CONSUMER_KEY: !Ref TwitterConsumerKey
+          TWITTER_CONSUMER_SECRET: !Ref TwitterConsumerSecret
+          TWITTER_ACCESS_TOKEN: !Ref TwitterAccessToken
+          TWITTER_ACCESS_TOKEN_SECRET: !Ref TwitterAccessTokenSecret
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          SLACK_BOT_TOKEN: !Ref SlackBotToken
       Events:
         Schedule:
           Type: Schedule
@@ -111,9 +160,11 @@ Resources:
   NotifySlackFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: lambda_functions.dynamodb_stream.notify_slack_stream.lambda_handler
+      Handler: lambda_functions/dynamodb_stream/notify_slack_stream.lambda_handler
       Runtime: python3.11
-      CodeUri: lambda_functions/dynamodb_stream/
+      CodeUri: .
+      Layers:
+        - !Ref LibLayer
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref NotificationsTable
@@ -122,6 +173,13 @@ Resources:
         Variables:
           SLACK_WEBHOOK_URL: ""
           NOTIFICATIONS_TABLE: !Ref NotificationsTable
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          SLACK_BOT_TOKEN: !Ref SlackBotToken
+          TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
+          TWITTER_CONSUMER_KEY: !Ref TwitterConsumerKey
+          TWITTER_CONSUMER_SECRET: !Ref TwitterConsumerSecret
+          TWITTER_ACCESS_TOKEN: !Ref TwitterAccessToken
+          TWITTER_ACCESS_TOKEN_SECRET: !Ref TwitterAccessTokenSecret
       Events:
         Stream:
           Type: DynamoDB

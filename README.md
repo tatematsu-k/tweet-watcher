@@ -129,3 +129,77 @@ sam delete --stack-name "tweet-watcher"
 See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
 
 Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+<<<<<<< Updated upstream
+=======
+
+## Secrets Manager による API キー・トークン管理
+
+本プロジェクトでは Slack や X(Twitter)の API キー・トークン等の秘匿情報は AWS Secrets Manager で一元管理します。
+
+### 1. 事前準備
+
+- AWS CLI, jq コマンドがインストールされていること
+- AWS 認証情報（profile や環境変数）がセットされていること
+
+### 2. シークレット登録スクリプトの実行
+
+```sh
+bash scripts/setup_secrets.sh
+```
+
+- 対話形式で Slack Bot Token や Twitter API キー等を入力
+- 既存のシークレットがある場合は上書き確認プロンプトが表示されます
+
+### 3. Lambda からの利用
+
+- Lambda 関数は Secrets Manager から実行時に値を取得して利用します
+- template.yaml で Secrets Manager へのアクセス権限が付与されます
+
+## デプロイ・開発フロー
+
+### 1. Secrets Manager のセットアップ
+
+まずは [Secrets Manager による API キー・トークン管理](#secrets-manager-による-api-キー・トークン管理) の手順でシークレットを登録してください。
+
+### 2. SAM ビルド・デプロイ
+
+#### 推奨: Secrets 連携デプロイスクリプト利用
+
+```sh
+bash scripts/deploy_with_secrets.sh --guided
+```
+
+- Secrets Manager から Slack/Twitter のシークレットを自動取得し、sam deploy 時に必要な環境変数を一括で渡します
+- 追加の sam deploy 引数もそのまま渡せます
+
+#### Makefile/直接コマンド例（Secrets を手動で環境変数にセットする場合）
+
+```sh
+export SLACK_SIGNING_SECRET=... # 事前にSecrets Manager等から取得
+export SLACK_BOT_TOKEN=...
+export TWITTER_BEARER_TOKEN=...
+export TWITTER_CONSUMER_KEY=...
+export TWITTER_CONSUMER_SECRET=...
+export TWITTER_ACCESS_TOKEN=...
+export TWITTER_ACCESS_TOKEN_SECRET=...
+sam build
+sam deploy --parameter-overrides \
+  SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET \
+  SLACK_BOT_TOKEN=$SLACK_BOT_TOKEN \
+  TWITTER_BEARER_TOKEN=$TWITTER_BEARER_TOKEN \
+  TWITTER_CONSUMER_KEY=$TWITTER_CONSUMER_KEY \
+  TWITTER_CONSUMER_SECRET=$TWITTER_CONSUMER_SECRET \
+  TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN \
+  TWITTER_ACCESS_TOKEN_SECRET=$TWITTER_ACCESS_TOKEN_SECRET
+```
+
+- `samconfig.toml` でデプロイ先やパラメータを管理できます
+- 必要に応じて `AWS_PROFILE` や `AWS_REGION` を指定してください
+
+### 3. Lambda での Secrets 利用
+
+- Lambda 関数は Secrets Manager から API キー等を取得して動作します
+- template.yaml で Secrets Manager へのアクセス権限が付与されていることを確認してください
+
+---
+>>>>>>> Stashed changes
