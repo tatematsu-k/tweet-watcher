@@ -79,7 +79,7 @@ def create_setting(args, integration):
     settings_repo = SettingsRepository()
     try:
         resp = settings_repo.put(keyword, slack_ch)
-        return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} (id: {resp['id']}, status: {resp['status']})")
+        return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} (id: {resp['id']}, publication_status: {resp['publication_status']})")
     except Exception as e:
         logging.error(f"[create] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[create] エラー: {str(e)}")
@@ -104,7 +104,7 @@ def get_setting(args, integration):
             if not items:
                 return integration.build_response("[list] 設定が1件もありません")
             msg = "[list] 全設定一覧:\n" + "\n".join([
-                f"{item['id']}: {item['keyword']} {item['slack_ch']} (status: {item.get('status', 'unknown')})" for item in items
+                f"{item['id']}: {item['keyword']} {item['slack_ch']} (publication_status: {item.get('publication_status', 'unknown')})" for item in items
             ])
             return integration.build_response(msg)
         elif len(args) == 1:
@@ -154,7 +154,7 @@ def activate_setting(args, integration):
         resp = settings_repo.get_by_id(id)
         if "Item" not in resp:
             return integration.build_response(f"[active] 該当設定がありません: id={id}")
-        settings_repo.update_status_active_by_id(id)
+        settings_repo.update_publication_status_active_by_id(id)
         return integration.build_response(f"[active] アクティブにしました: id={id}")
     except Exception as e:
         logging.error(f"[active] エラーが発生しました: {str(e)}", exc_info=True)
@@ -169,7 +169,7 @@ def deactivate_setting(args, integration):
         resp = settings_repo.get_by_id(id)
         if "Item" not in resp:
             return integration.build_response(f"[inactive] 該当設定がありません: id={id}")
-        settings_repo.update_status_inactive_by_id(id)
+        settings_repo.update_publication_status_inactive_by_id(id)
         return integration.build_response(f"[inactive] 非アクティブにしました: id={id}")
     except Exception as e:
         logging.error(f"[inactive] エラーが発生しました: {str(e)}", exc_info=True)

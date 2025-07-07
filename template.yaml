@@ -27,16 +27,16 @@ Resources:
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
-        - AttributeName: status
+        - AttributeName: publication_status
           AttributeType: S
       KeySchema:
         - AttributeName: id
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       GlobalSecondaryIndexes:
-        - IndexName: status-index
+        - IndexName: publication_status-index
           KeySchema:
-            - AttributeName: status
+            - AttributeName: publication_status
               KeyType: HASH
           Projection:
             ProjectionType: ALL
@@ -97,7 +97,7 @@ Resources:
               - dynamodb:Scan
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}
-              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/status-index
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/publication_status-index
       Environment:
         Variables:
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
@@ -149,7 +149,14 @@ Resources:
               - dynamodb:Scan
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}
-              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/status-index
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/publication_status-index
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:Scan
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherXCredentialSettingsTable}
       Environment:
         Variables:
           LIKE_THRESHOLD: "5"

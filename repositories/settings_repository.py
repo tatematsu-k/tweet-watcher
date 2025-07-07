@@ -28,12 +28,12 @@ class SettingsRepository:
         else:
             raise Exception('ID生成に失敗しました')
 
-        # 現在のアクティブ設定数をチェックしてstatusを決定
+        # 現在のアクティブ設定数をチェックしてpublication_statusを決定
         current_active_count = self.valid_setting_count()
-        status = "active" if current_active_count < self.MAX_ACTIVE_SETTINGS else "inactive"
+        publication_status = "active" if current_active_count < self.MAX_ACTIVE_SETTINGS else "inactive"
 
-        self.table.put_item(Item={"id": id, "keyword": keyword, "slack_ch": slack_ch, "status": status})
-        return {"id": id, "status": status}
+        self.table.put_item(Item={"id": id, "keyword": keyword, "slack_ch": slack_ch, "publication_status": publication_status})
+        return {"id": id, "publication_status": publication_status}
 
     def update_keyword_by_id(self, id, keyword):
         update_expr = "SET keyword = :keyword"
@@ -44,22 +44,22 @@ class SettingsRepository:
             ExpressionAttributeValues=expr_attr
         )
 
-    def update_status_active_by_id(self, id):
+    def update_publication_status_active_by_id(self, id):
         # アクティブな設定がMAX_ACTIVE_SETTINGS件以上ある場合はエラーを返す
         if self.valid_setting_count() >= self.MAX_ACTIVE_SETTINGS:
             raise Exception('アクティブな設定は3件までしか登録できません')
 
-        update_expr = "SET status = :status"
-        expr_attr = {":status": "active"}
+        update_expr = "SET publication_status = :publication_status"
+        expr_attr = {":publication_status": "active"}
         return self.table.update_item(
             Key={"id": id},
             UpdateExpression=update_expr,
             ExpressionAttributeValues=expr_attr
         )
 
-    def update_status_inactive_by_id(self, id):
-        update_expr = "SET status = :status"
-        expr_attr = {":status": "inactive"}
+    def update_publication_status_inactive_by_id(self, id):
+        update_expr = "SET publication_status = :publication_status"
+        expr_attr = {":publication_status": "inactive"}
         return self.table.update_item(
             Key={"id": id},
             UpdateExpression=update_expr,
@@ -74,8 +74,8 @@ class SettingsRepository:
 
     def list_valid_settings(self):
         response = self.table.query(
-            IndexName="status-index",
-            KeyConditionExpression=Key('status').eq('active')
+            IndexName="publication_status-index",
+            KeyConditionExpression=Key('publication_status').eq('active')
         )
         return response
 

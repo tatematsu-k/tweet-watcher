@@ -21,13 +21,13 @@ def setup_dynamodb():
             KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
-                {"AttributeName": "status", "AttributeType": "S"}
+                {"AttributeName": "publication_status", "AttributeType": "S"}
             ],
             GlobalSecondaryIndexes=[
                 {
-                    "IndexName": "status-index",
+                    "IndexName": "publication_status-index",
                     "KeySchema": [
-                        {"AttributeName": "status", "KeyType": "HASH"}
+                        {"AttributeName": "publication_status", "KeyType": "HASH"}
                     ],
                     "Projection": {"ProjectionType": "ALL"}
                 }
