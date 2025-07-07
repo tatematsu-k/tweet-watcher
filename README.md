@@ -82,7 +82,7 @@ flowchart TD
   end
   subgraph "AWS"
     APIGW["API Gateway"]
-    LambdaAPI["Lambda: settings_api"]
+    LambdaAPI["Lambda: api_gateway/main"]
     LambdaBatch["Lambda: tweet_monitor_batch"]
     LambdaStream["Lambda: notify_slack_stream"]
     EventBridge["EventBridge (15分毎)"]
