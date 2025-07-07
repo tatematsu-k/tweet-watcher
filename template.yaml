@@ -83,7 +83,7 @@ Resources:
   SettingsApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: lambda_functions/api_gateway/settings_api.lambda_handler
+      Handler: lambda_functions/api_gateway/main.lambda_handler
       Runtime: python3.13
       CodeUri: .
       Layers:
