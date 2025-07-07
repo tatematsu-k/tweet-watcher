@@ -4,13 +4,17 @@ import pytest
 from unittest.mock import patch
 from moto import mock_dynamodb
 import boto3
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
+
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+)
 from repositories.settings_repository import SettingsRepository
 from lambda_functions.api_gateway import settings_api
 from integration.integration_base import IntegrationBase
 from integration.slack_integration import SlackIntegration
 
 TABLE_NAME = "TweetWacherSettingsTable"
+
 
 @pytest.fixture(autouse=True)
 def setup_dynamodb():
@@ -22,7 +26,7 @@ def setup_dynamodb():
             KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
-                {"AttributeName": "publication_status", "AttributeType": "S"}
+                {"AttributeName": "publication_status", "AttributeType": "S"},
             ],
             GlobalSecondaryIndexes=[
                 {
@@ -30,13 +34,14 @@ def setup_dynamodb():
                     "KeySchema": [
                         {"AttributeName": "publication_status", "KeyType": "HASH"}
                     ],
-                    "Projection": {"ProjectionType": "ALL"}
+                    "Projection": {"ProjectionType": "ALL"},
                 }
             ],
-            BillingMode="PAY_PER_REQUEST"
+            BillingMode="PAY_PER_REQUEST",
         )
         os.environ["SETTINGS_TABLE"] = TABLE_NAME
         yield
+
 
 # SettingsRepository CRUD
 def test_put_and_get_by_id():
@@ -47,6 +52,7 @@ def test_put_and_get_by_id():
     assert got["Item"]["keyword"] == "keyword1"
     assert got["Item"]["slack_ch"] == "C12345"
 
+
 def test_update_keyword_by_id():
     repo = SettingsRepository(TABLE_NAME)
     result = repo.put("k1", "C1")
@@ -54,6 +60,7 @@ def test_update_keyword_by_id():
     repo.update_keyword_by_id(id, "k2")
     got = repo.get_by_id(id)
     assert got["Item"]["keyword"] == "k2"
+
 
 def test_delete_by_id():
     repo = SettingsRepository(TABLE_NAME)
@@ -63,8 +70,11 @@ def test_delete_by_id():
     got = repo.get_by_id(id)
     assert "Item" not in got
 
+
 # settings_api lambda_handler (Slackコマンド形式)
-@patch("lambda_functions.api_gateway.settings_api.verify_slack_request", return_value=True)
+@patch(
+    "lambda_functions.api_gateway.settings_api.verify_slack_request", return_value=True
+)
 def test_lambda_handler_create_list_update_delete_and_threshold(mock_verify):
     # create with threshold
     event = {"body": "text=setting+create+kw+CH+15+3"}
@@ -80,7 +90,8 @@ def test_lambda_handler_create_list_update_delete_and_threshold(mock_verify):
     assert "設定一覧" in resp["body"] or "アクティブな設定一覧" in resp["body"]
     # id取得
     import re
-    match = re.search(r'id: ([a-zA-Z0-9]+)', resp["body"])
+
+    match = re.search(r"id: ([a-zA-Z0-9]+)", resp["body"])
     id = match.group(1) if match else None
     if id:
         # update_like_threshold
@@ -99,17 +110,21 @@ def test_lambda_handler_create_list_update_delete_and_threshold(mock_verify):
         assert resp["statusCode"] == 200
         assert "削除しました" in resp["body"]
 
+
 # IntegrationBase, SlackIntegration
 class DummyIntegration(IntegrationBase):
     def parse_input(self, event):
         return event
+
     def build_response(self, message):
         return message
+
 
 def test_integration_base_abstract():
     dummy = DummyIntegration()
     assert dummy.parse_input("x") == "x"
     assert dummy.build_response("y") == "y"
+
 
 def test_slack_integration_methods():
     slack = SlackIntegration()

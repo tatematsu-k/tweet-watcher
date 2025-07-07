@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class IntegrationBase(ABC):
     @abstractmethod
     def parse_input(self, event):
