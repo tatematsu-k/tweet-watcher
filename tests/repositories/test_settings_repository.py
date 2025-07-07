@@ -1,11 +1,11 @@
 import os
 import sys
 import pytest
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 )
-from unittest.mock import MagicMock, patch
 from repositories.settings_repository import SettingsRepository
 from tests.mock.dynamodb import setup_dynamodb_all_tables
 

@@ -1,14 +1,14 @@
 import os
 import sys
 import pytest
+from unittest.mock import MagicMock, patch
+from datetime import datetime, timezone, timedelta
 
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 )
 from repositories.x_credential_settings_repository import XCredentialSettingsRepository
 from tests.mock.dynamodb import setup_dynamodb_all_tables
-from unittest.mock import MagicMock, patch
-from datetime import datetime, timezone, timedelta
 
 TABLE_NAME = "TweetWacherXCredentialSettingsTable"
 
