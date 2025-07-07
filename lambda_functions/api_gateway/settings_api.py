@@ -46,7 +46,7 @@ def lambda_handler(event, context):
         return integration.build_response(help_text())
     elif action == "create":
         return create_setting(args[2:], integration)
-    elif action == "read" or action == "list":
+    elif action == "list":
         return get_setting(args[2:], integration)
     elif action == "update":
         return update_setting(args[2:], integration)
@@ -61,10 +61,10 @@ def lambda_handler(event, context):
 
 def help_text():
     return (
-        "使い方: /tweet-watcher setting [create|read|update|delete|active|inactive|help] ...\n"
+        "使い方: /tweet-watcher setting [create|list|update|delete|active|inactive|help] ...\n"
         "例:\n"
         "/tweet-watcher setting create 'キーワード1 キーワード2' #slackチャンネル\n"
-        "/tweet-watcher setting (read|list) 'キーワード'\n"
+        "/tweet-watcher setting list (-a)\n"
         "/tweet-watcher setting update id '新キーワード'\n"
         "/tweet-watcher setting delete id\n"
         "/tweet-watcher setting active id\n"
@@ -78,9 +78,6 @@ def create_setting(args, integration):
     keyword, slack_ch = args
     settings_repo = SettingsRepository()
     try:
-        # keyword+slack_ch重複チェック
-        if settings_repo.get_by_keyword_slackch(keyword, slack_ch):
-            return integration.build_response(f"[create] 既に登録済みです: {keyword} {slack_ch}")
         resp = settings_repo.put(keyword, slack_ch)
         return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} (id: {resp['id']}, status: {resp['status']})")
     except Exception as e:
@@ -90,30 +87,33 @@ def create_setting(args, integration):
 def get_setting(args, integration):
     settings_repo = SettingsRepository()
     try:
-        if len(args) == 1:
-            keyword = args[0]
-            resp = settings_repo.query_by_keyword(keyword)
+        if len(args) == 0:
+            # アクティブな設定のみ取得
+            resp = settings_repo.list_valid_settings()
             items = resp.get('Items', [])
             if not items:
-                return integration.build_response(f"[read] 該当設定がありません: {keyword}")
-            msg = "[read] 設定一覧:\n" + "\n".join([
+                return integration.build_response("[list] アクティブな設定が1件もありません")
+            msg = "[list] アクティブな設定一覧:\n" + "\n".join([
                 f"{item['id']}: {item['keyword']} {item['slack_ch']}" for item in items
             ])
             return integration.build_response(msg)
-        elif len(args) == 0:
+        elif len(args) == 1 and args[0] == "-a":
+            # 全件取得（明示的に-aオプション指定）
             resp = settings_repo.list_all()
             items = resp.get('Items', [])
             if not items:
-                return integration.build_response("[read] 設定が1件もありません")
-            msg = "[read] 全設定一覧:\n" + "\n".join([
-                f"{item['id']}: {item['keyword']} {item['slack_ch']}" for item in items
+                return integration.build_response("[list] 設定が1件もありません")
+            msg = "[list] 全設定一覧:\n" + "\n".join([
+                f"{item['id']}: {item['keyword']} {item['slack_ch']} (status: {item.get('status', 'unknown')})" for item in items
             ])
             return integration.build_response(msg)
+        elif len(args) == 1:
+            return integration.build_response("[list] パラメータが正しくありません。/tweet-watcher setting help を参照してください。")
         else:
-            return integration.build_response("[read] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
+            return integration.build_response("[list] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
     except Exception as e:
-        logging.error(f"[read] エラーが発生しました: {str(e)}", exc_info=True)
-        return integration.build_response(f"[read] エラー: {str(e)}")
+        logging.error(f"[list] エラーが発生しました: {str(e)}", exc_info=True)
+        return integration.build_response(f"[list] エラー: {str(e)}")
 
 def update_setting(args, integration):
     if len(args) != 2:
@@ -170,3 +170,7 @@ def deactivate_setting(args, integration):
         if "Item" not in resp:
             return integration.build_response(f"[inactive] 該当設定がありません: id={id}")
         settings_repo.update_status_inactive_by_id(id)
+        return integration.build_response(f"[inactive] 非アクティブにしました: id={id}")
+    except Exception as e:
+        logging.error(f"[inactive] エラーが発生しました: {str(e)}", exc_info=True)
+        return integration.build_response(f"[inactive] エラー: {str(e)}")

@@ -27,10 +27,6 @@ Resources:
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
-        - AttributeName: keyword
-          AttributeType: S
-        - AttributeName: slack_ch
-          AttributeType: S
         - AttributeName: status
           AttributeType: S
       KeySchema:
@@ -42,14 +38,6 @@ Resources:
           KeySchema:
             - AttributeName: status
               KeyType: HASH
-          Projection:
-            ProjectionType: ALL
-        - IndexName: keyword-index
-          KeySchema:
-            - AttributeName: keyword
-              KeyType: HASH
-            - AttributeName: slack_ch
-              KeyType: RANGE
           Projection:
             ProjectionType: ALL
 
@@ -110,7 +98,6 @@ Resources:
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/status-index
-              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/keyword-index
       Environment:
         Variables:
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret

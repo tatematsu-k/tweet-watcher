@@ -16,14 +16,6 @@ class SettingsRepository:
     def get_by_id(self, id):
         return self.table.get_item(Key={"id": id})
 
-    def get_by_keyword_slackch(self, keyword, slack_ch):
-        resp = self.table.query(
-            IndexName="keyword-index",
-            KeyConditionExpression=Key('keyword').eq(keyword) & Key('slack_ch').eq(slack_ch)
-        )
-        items = resp.get('Items', [])
-        return items[0] if items else None
-
     def _generate_short_id(self, length=6):
         chars = string.ascii_letters + string.digits
         return ''.join(random.choices(chars, k=length))
@@ -76,9 +68,6 @@ class SettingsRepository:
 
     def delete_by_id(self, id):
         return self.table.delete_item(Key={"id": id})
-
-    def query_by_keyword(self, keyword):
-        return self.table.query(IndexName="keyword-index", KeyConditionExpression=Key('keyword').eq(keyword))
 
     def list_all(self):
         return self.table.scan()

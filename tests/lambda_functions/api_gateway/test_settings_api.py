@@ -21,17 +21,17 @@ def setup_dynamodb():
             KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
-                {"AttributeName": "keyword", "AttributeType": "S"},
-                {"AttributeName": "slack_ch", "AttributeType": "S"}
+                {"AttributeName": "status", "AttributeType": "S"}
             ],
-            GlobalSecondaryIndexes=[{
-                "IndexName": "keyword-index",
-                "KeySchema": [
-                    {"AttributeName": "keyword", "KeyType": "HASH"},
-                    {"AttributeName": "slack_ch", "KeyType": "RANGE"}
-                ],
-                "Projection": {"ProjectionType": "ALL"}
-            }],
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "status-index",
+                    "KeySchema": [
+                        {"AttributeName": "status", "KeyType": "HASH"}
+                    ],
+                    "Projection": {"ProjectionType": "ALL"}
+                }
+            ],
             BillingMode="PAY_PER_REQUEST"
         )
         os.environ["SETTINGS_TABLE"] = TABLE_NAME
@@ -59,25 +59,17 @@ def test_delete_by_id():
     got = repo.get_by_id(id)
     assert "Item" not in got
 
-def test_query_by_keyword():
-    repo = SettingsRepository(TABLE_NAME)
-    repo.put('k1', 'C1')
-    repo.put('k1', 'C2')
-    resp = repo.query_by_keyword("k1")
-    items = resp.get("Items", [])
-    assert len(items) == 2
-    slack_chs = {item["slack_ch"] for item in items}
-    assert slack_chs == {"C1", "C2"}
+
 
 # settings_api lambda_handler (Slackコマンド形式)
-def test_lambda_handler_create_read_update_delete():
+def test_lambda_handler_create_list_update_delete():
     # create
     event = {"body": "text=setting+create+kw+CH"}
     resp = settings_api.lambda_handler(event, None)
     assert resp["statusCode"] == 200
     assert "登録しました" in resp["body"]
-    # read
-    event = {"body": "text=setting+read+kw"}
+    # list
+    event = {"body": "text=setting+list"}
     resp = settings_api.lambda_handler(event, None)
     assert resp["statusCode"] == 200
     assert "設定一覧" in resp["body"]
