@@ -1,7 +1,7 @@
 import logging
 from repositories.settings_repository import SettingsRepository
 
-def deactivate_setting(args, integration):
+def inactive_setting(args, integration):
     if len(args) != 1:
         return integration.build_response(
             "[inactive] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。\n例: /tweet-watcher setting inactive id"
@@ -19,4 +19,4 @@ def deactivate_setting(args, integration):
         return integration.build_response(f"[inactive] エラー: {str(e)}")
 
 def main(args, integration):
-    return deactivate_setting(args, integration)
+    return inactive_setting(args, integration)

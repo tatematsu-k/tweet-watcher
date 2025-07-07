@@ -6,7 +6,7 @@ from lambda_functions.api_gateway.setting.update_like_threshold import main as u
 from lambda_functions.api_gateway.setting.update_retweet_threshold import main as update_retweet_threshold_main
 from lambda_functions.api_gateway.setting.delete import main as delete_setting_main
 from lambda_functions.api_gateway.setting.active import main as activate_setting_main
-from lambda_functions.api_gateway.setting.inactive import main as deactivate_setting_main
+from lambda_functions.api_gateway.setting.inactive import main as inactive_setting_main
 
 def lambda_handler(event, context):
     # Slack署名検証はmain.pyで実施済み
@@ -36,7 +36,7 @@ def lambda_handler(event, context):
     elif action == "active":
         return activate_setting_main(args[2:], integration)
     elif action == "inactive":
-        return deactivate_setting_main(args[2:], integration)
+        return inactive_setting_main(args[2:], integration)
     else:
         return integration.build_response(
             "不明なアクションです。/tweet-watcher setting help を参照してください。"
