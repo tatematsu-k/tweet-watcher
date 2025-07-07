@@ -7,6 +7,7 @@ from integration.slack_integration import SlackIntegration
 from repositories.settings_repository import SettingsRepository
 from lambda_functions.api_gateway.setting.create import main as create_setting_main
 from lambda_functions.api_gateway.setting.list import main as list_setting_main
+from lambda_functions.api_gateway.setting.update import main as update_setting_main
 
 
 def get_slack_signing_secret():
@@ -49,7 +50,7 @@ def lambda_handler(event, context):
     elif action == "list":
         return list_setting_main(args[2:], integration)
     elif action == "update":
-        return update_setting(args[2:], integration)
+        return update_setting_main(args[2:], integration)
     elif action == "update_like_threshold":
         return update_like_threshold(args[2:], integration)
     elif action == "update_retweet_threshold":
