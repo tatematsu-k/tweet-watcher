@@ -41,7 +41,7 @@ def get_valid_settings():
     repo = SettingsRepository()
     return repo.list_valid_settings().get('Items', [])
 
-def search_tweets_by_keyword(client, keyword, max_results=30):
+def search_tweets_by_keyword(client, keyword, max_results=30, error_count=0):
     """
     指定キーワードでTwitter検索を行う
     """
@@ -72,7 +72,19 @@ def search_tweets_by_keyword(client, keyword, max_results=30):
                         print(f"[BatchWatcher] レート制限リセット時間を更新: {reset_time_int}")
                 except (ValueError, TypeError) as parse_error:
                     print(f"[BatchWatcher] リセット時間の解析に失敗: {parse_error}")
-        return []
+
+        # エラー回数が2以下なら再帰的に再試行
+        if error_count < 2:
+            print(f"[BatchWatcher] 新しい認証情報で再試行します (試行回数: {error_count + 1})")
+            try:
+                new_client = get_twitter_client()
+                return search_tweets_by_keyword(new_client, keyword, max_results, error_count + 1)
+            except Exception as retry_error:
+                print(f"[BatchWatcher] 再試行も失敗: {retry_error}")
+                return []
+        else:
+            print(f"[BatchWatcher] 最大試行回数に達しました (試行回数: {error_count + 1})")
+            return []
     except Exception as e:
         print(f"[BatchWatcher] Twitter検索失敗: {e}")
         return []
