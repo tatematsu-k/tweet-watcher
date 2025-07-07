@@ -5,6 +5,7 @@ import json
 import os
 import shlex
 
+
 class SlackIntegration(IntegrationBase):
     def __init__(self, bot_token=None):
         self.bot_token = bot_token or os.environ.get("SLACK_BOT_TOKEN")
@@ -20,7 +21,7 @@ class SlackIntegration(IntegrationBase):
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "text/plain"},
-            "body": message
+            "body": message,
         }
 
     def _slack_api_post(self, endpoint, payload):
@@ -29,7 +30,7 @@ class SlackIntegration(IntegrationBase):
         conn = http.client.HTTPSConnection("slack.com")
         headers = {
             "Authorization": f"Bearer {self.bot_token}",
-            "Content-Type": "application/json; charset=utf-8"
+            "Content-Type": "application/json; charset=utf-8",
         }
         body = json.dumps(payload)
         conn.request("POST", f"/api/{endpoint}", body, headers)
@@ -48,10 +49,7 @@ class SlackIntegration(IntegrationBase):
         Slack Bot Token方式でchat.postMessage APIを使いメッセージ送信。thread_ts指定でスレッド返信も可能。
         戻り値はSlackのメッセージts。
         """
-        payload = {
-            "channel": channel,
-            "text": message
-        }
+        payload = {"channel": channel, "text": message}
         if thread_ts:
             payload["thread_ts"] = thread_ts
         try:
