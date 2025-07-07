@@ -13,10 +13,6 @@ SLACK_BOT_TOKEN=$(echo "$SLACK_SECRET" | jq -r .SLACK_BOT_TOKEN)
 # Twitterシークレット取得
 TWITTER_SECRET=$(aws secretsmanager get-secret-value --secret-id tweet-watcher/twitter --query 'SecretString' --output text)
 TWITTER_BEARER_TOKEN=$(echo "$TWITTER_SECRET" | jq -r .TWITTER_BEARER_TOKEN)
-TWITTER_CONSUMER_KEY=$(echo "$TWITTER_SECRET" | jq -r .TWITTER_CONSUMER_KEY)
-TWITTER_CONSUMER_SECRET=$(echo "$TWITTER_SECRET" | jq -r .TWITTER_CONSUMER_SECRET)
-TWITTER_ACCESS_TOKEN=$(echo "$TWITTER_SECRET" | jq -r .TWITTER_ACCESS_TOKEN)
-TWITTER_ACCESS_TOKEN_SECRET=$(echo "$TWITTER_SECRET" | jq -r .TWITTER_ACCESS_TOKEN_SECRET)
 
 # デプロイ用ビルドディレクトリ作成
 rm -rf build
@@ -39,7 +35,7 @@ if [ -z "$SLACK_SIGNATURE" ] || [ -z "$SLACK_BOT_TOKEN" ]; then
   echo "[ERROR] Slackシークレットが取得できませんでした。setup_secrets.shで登録済みか確認してください。"
   exit 1
 fi
-if [ -z "$TWITTER_BEARER_TOKEN" ] || [ -z "$TWITTER_CONSUMER_KEY" ] || [ -z "$TWITTER_CONSUMER_SECRET" ] || [ -z "$TWITTER_ACCESS_TOKEN" ] || [ -z "$TWITTER_ACCESS_TOKEN_SECRET" ]; then
+if [ -z "$TWITTER_BEARER_TOKEN" ]; then
   echo "[ERROR] Twitterシークレットが取得できませんでした。setup_secrets.shで登録済みか確認してください。"
   exit 1
 fi
@@ -52,10 +48,6 @@ PARAMS=(
   ParameterKey=SlackSigningSecret,ParameterValue=$SLACK_SIGNATURE
   ParameterKey=SlackBotToken,ParameterValue=$SLACK_BOT_TOKEN
   ParameterKey=TwitterBearerToken,ParameterValue=$TWITTER_BEARER_TOKEN
-  ParameterKey=TwitterConsumerKey,ParameterValue=$TWITTER_CONSUMER_KEY
-  ParameterKey=TwitterConsumerSecret,ParameterValue=$TWITTER_CONSUMER_SECRET
-  ParameterKey=TwitterAccessToken,ParameterValue=$TWITTER_ACCESS_TOKEN
-  ParameterKey=TwitterAccessTokenSecret,ParameterValue=$TWITTER_ACCESS_TOKEN_SECRET
 )
 echo "[DEBUG] PARAMS: ${PARAMS[@]}"
 sam deploy -t template.yaml --parameter-overrides "${PARAMS[@]}" "$@"

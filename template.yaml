@@ -10,14 +10,6 @@ Parameters:
     Type: String
   TwitterBearerToken:
     Type: String
-  TwitterConsumerKey:
-    Type: String
-  TwitterConsumerSecret:
-    Type: String
-  TwitterAccessToken:
-    Type: String
-  TwitterAccessTokenSecret:
-    Type: String
 
 Resources:
   TweetWacherSettingsTable:
@@ -103,10 +95,6 @@ Resources:
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
           SLACK_BOT_TOKEN: !Ref SlackBotToken
           TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
-          TWITTER_CONSUMER_KEY: !Ref TwitterConsumerKey
-          TWITTER_CONSUMER_SECRET: !Ref TwitterConsumerSecret
-          TWITTER_ACCESS_TOKEN: !Ref TwitterAccessToken
-          TWITTER_ACCESS_TOKEN_SECRET: !Ref TwitterAccessTokenSecret
       Events:
         GetSettings:
           Type: Api
@@ -162,10 +150,6 @@ Resources:
           LIKE_THRESHOLD: "5"
           RETWEET_THRESHOLD: "1"
           TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
-          TWITTER_CONSUMER_KEY: !Ref TwitterConsumerKey
-          TWITTER_CONSUMER_SECRET: !Ref TwitterConsumerSecret
-          TWITTER_ACCESS_TOKEN: !Ref TwitterAccessToken
-          TWITTER_ACCESS_TOKEN_SECRET: !Ref TwitterAccessTokenSecret
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
           SLACK_BOT_TOKEN: !Ref SlackBotToken
       Events:
@@ -193,10 +177,6 @@ Resources:
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
           SLACK_BOT_TOKEN: !Ref SlackBotToken
           TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
-          TWITTER_CONSUMER_KEY: !Ref TwitterConsumerKey
-          TWITTER_CONSUMER_SECRET: !Ref TwitterConsumerSecret
-          TWITTER_ACCESS_TOKEN: !Ref TwitterAccessToken
-          TWITTER_ACCESS_TOKEN_SECRET: !Ref TwitterAccessTokenSecret
       Events:
         Stream:
           Type: DynamoDB
