@@ -109,7 +109,7 @@ def get_setting(args, integration):
             if not items:
                 return integration.build_response("[list] アクティブな設定が1件もありません")
             msg = "[list] アクティブな設定一覧:\n" + "\n".join([
-                f"{item['id']}: {item['keyword']} {item['slack_ch']}" for item in items
+                f"{item['id']}: {item['keyword']} {item['slack_ch']} like: {item.get('like_threshold', '-')}, rt: {item.get('retweet_threshold', '-')}" for item in items
             ])
             return integration.build_response(msg)
         elif len(args) == 1 and args[0] == "-a":
@@ -119,7 +119,7 @@ def get_setting(args, integration):
             if not items:
                 return integration.build_response("[list] 設定が1件もありません")
             msg = "[list] 全設定一覧:\n" + "\n".join([
-                f"{item['id']}: {item['keyword']} {item['slack_ch']} (publication_status: {item.get('publication_status', 'unknown')})" for item in items
+                f"{item['id']}: {item['keyword']} {item['slack_ch']} (publication_status: {item.get('publication_status', 'unknown')}) like: {item.get('like_threshold', '-')}, rt: {item.get('retweet_threshold', '-')}" for item in items
             ])
             return integration.build_response(msg)
         elif len(args) == 1:
