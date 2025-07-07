@@ -12,6 +12,7 @@ from lambda_functions.api_gateway.setting.update_like_threshold import main as u
 from lambda_functions.api_gateway.setting.update_retweet_threshold import main as update_retweet_threshold_main
 from lambda_functions.api_gateway.setting.delete import main as delete_setting_main
 from lambda_functions.api_gateway.setting.active import main as activate_setting_main
+from lambda_functions.api_gateway.setting.inactive import main as deactivate_setting_main
 
 
 def get_slack_signing_secret():
@@ -64,7 +65,7 @@ def lambda_handler(event, context):
     elif action == "active":
         return activate_setting_main(args[2:], integration)
     elif action == "inactive":
-        return deactivate_setting(args[2:], integration)
+        return deactivate_setting_main(args[2:], integration)
     else:
         return integration.build_response(
             "不明なアクションです。/tweet-watcher setting help を参照してください。"
@@ -167,26 +168,6 @@ def delete_setting(args, integration):
     except Exception as e:
         logging.error(f"[delete] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[delete] エラー: {str(e)}")
-
-
-def deactivate_setting(args, integration):
-    if len(args) != 1:
-        return integration.build_response(
-            "[inactive] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。\n例: /tweet-watcher setting inactive id"
-        )
-    id = args[0]
-    settings_repo = SettingsRepository()
-    try:
-        resp = settings_repo.get_by_id(id)
-        if "Item" not in resp:
-            return integration.build_response(
-                f"[inactive] 該当設定がありません: id={id}"
-            )
-        settings_repo.update_publication_status_inactive_by_id(id)
-        return integration.build_response(f"[inactive] 非アクティブにしました: id={id}")
-    except Exception as e:
-        logging.error(f"[inactive] エラーが発生しました: {str(e)}", exc_info=True)
-        return integration.build_response(f"[inactive] エラー: {str(e)}")
 
 
 def update_retweet_threshold(args, integration):
