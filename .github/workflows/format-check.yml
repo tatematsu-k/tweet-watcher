@@ -1,0 +1,24 @@
+name: Format Check
+
+on:
+  pull_request:
+    paths:
+      - "**.py"
+      - Makefile
+      - pyproject.toml
+      - requirements.txt
+      - .github/workflows/format-check.yml
+
+jobs:
+  black:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install black
+        run: pip install black
+      - name: Run black --check
+        run: black --check --diff --preview *.py lambda_functions repositories integration tests
