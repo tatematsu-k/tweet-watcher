@@ -3,38 +3,49 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   tweet-watcher
 
+Parameters:
+  SlackSigningSecret:
+    Type: String
+  SlackBotToken:
+    Type: String
+
 Resources:
-  SettingsTable:
+  TweetWacherXCredentialSettingsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: SettingsTable
+      TableName: TweetWacherXCredentialSettingsTable
       AttributeDefinitions:
-        - AttributeName: keyword
-          AttributeType: S
-        - AttributeName: slack_ch
-          AttributeType: S
-        - AttributeName: end_at
+        - AttributeName: bearer_token
           AttributeType: S
       KeySchema:
-        - AttributeName: keyword
+        - AttributeName: bearer_token
           KeyType: HASH
-        - AttributeName: slack_ch
-          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+  TweetWacherSettingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TweetWacherSettingsTable
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: publication_status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       GlobalSecondaryIndexes:
-        - IndexName: end_at-index
+        - IndexName: publication_status-index
           KeySchema:
-            - AttributeName: end_at
+            - AttributeName: publication_status
               KeyType: HASH
-            - AttributeName: keyword
-              KeyType: RANGE
           Projection:
             ProjectionType: ALL
 
-  NotificationsTable:
+  TweetWacherNotificationsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: NotificationsTable
+      TableName: TweetWacherNotificationsTable
       AttributeDefinitions:
         - AttributeName: tweet_uid
           AttributeType: S
@@ -50,16 +61,48 @@ Resources:
       BillingMode: PAY_PER_REQUEST
       StreamSpecification:
         StreamViewType: NEW_IMAGE
+      GlobalSecondaryIndexes:
+        - IndexName: slack_message_ts-index
+          KeySchema:
+            - AttributeName: slack_message_ts
+              KeyType: HASH
+            - AttributeName: tweet_uid
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  LibLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: LibLayer
+      Content: lib-layer.zip
+      CompatibleRuntimes:
+        - python3.13
+        - python3.11
 
   SettingsApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: lambda_functions.api_gateway.settings_api.lambda_handler
+      Handler: lambda_functions/api_gateway/settings_api.lambda_handler
       Runtime: python3.13
-      CodeUri: lambda_functions/api_gateway/
+      CodeUri: .
+      Layers:
+        - !Ref LibLayer
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref SettingsTable
+            TableName: !Ref TweetWacherSettingsTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:Scan
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/publication_status-index
+      Environment:
+        Variables:
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          SLACK_BOT_TOKEN: !Ref SlackBotToken
       Events:
         GetSettings:
           Type: Api
@@ -85,45 +128,60 @@ Resources:
   BatchWatcherFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: lambda_functions.event_bridge.tweet_monitor_batch.lambda_handler
+      Handler: lambda_functions/event_bridge/tweet_monitor_batch.lambda_handler
       Runtime: python3.11
-      CodeUri: lambda_functions/event_bridge/
+      CodeUri: .
+      Timeout: 30
+      Layers:
+        - !Ref LibLayer
       Policies:
         - DynamoDBReadPolicy:
-            TableName: !Ref SettingsTable
+            TableName: !Ref TweetWacherSettingsTable
         - DynamoDBCrudPolicy:
-            TableName: !Ref NotificationsTable
+            TableName: !Ref TweetWacherNotificationsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TweetWacherXCredentialSettingsTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:Scan
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/publication_status-index
       Environment:
         Variables:
-          LIKE_THRESHOLD: "10"
-          RETWEET_THRESHOLD: "5"
-          TWITTER_BEARER_TOKEN: ""
-          TWITTER_CONSUMER_KEY: ""
-          TWITTER_CONSUMER_SECRET: ""
-          TWITTER_ACCESS_TOKEN: ""
-          TWITTER_ACCESS_TOKEN_SECRET: ""
+          LIKE_THRESHOLD: "5"
+          RETWEET_THRESHOLD: "1"
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          SLACK_BOT_TOKEN: !Ref SlackBotToken
       Events:
         Schedule:
           Type: Schedule
           Properties:
-            Schedule: rate(15 minutes)
+            Schedule: rate(1 hour)
 
   NotifySlackFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: lambda_functions.dynamodb_stream.notify_slack_stream.lambda_handler
+      Handler: lambda_functions/dynamodb_stream/notify_slack_stream.lambda_handler
       Runtime: python3.11
-      CodeUri: lambda_functions/dynamodb_stream/
+      CodeUri: .
+      Layers:
+        - !Ref LibLayer
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref NotificationsTable
+            TableName: !Ref TweetWacherNotificationsTable
         # Slack通知用の外部APIアクセス権限が必要なら追加
       Environment:
         Variables:
-          NOTIFICATIONS_TABLE: !Ref NotificationsTable
+          SLACK_WEBHOOK_URL: ""
+          NOTIFICATIONS_TABLE: !Ref TweetWacherNotificationsTable
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          SLACK_BOT_TOKEN: !Ref SlackBotToken
       Events:
         Stream:
           Type: DynamoDB
           Properties:
-            Stream: !GetAtt NotificationsTable.StreamArn
+            Stream: !GetAtt TweetWacherNotificationsTable.StreamArn
             StartingPosition: LATEST

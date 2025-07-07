@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
 from repositories.settings_repository import SettingsRepository
 from repositories.notifications_repository import NotificationsRepository
+from repositories.x_credential_settings_repository import XCredentialSettingsRepository
 import os
 import tweepy
 # .env自動ロード（ローカル開発用）
@@ -15,34 +15,76 @@ def get_thresholds():
     環境変数からLIKE/RETWEETの閾値を取得する
     """
     like_threshold = int(os.environ.get("LIKE_THRESHOLD", "10"))
-    retweet_threshold = int(os.environ.get("RETWEET_THRESHOLD", "5"))
+    retweet_threshold = int(os.environ.get("RETWEET_THRESHOLD", "1"))
     return like_threshold, retweet_threshold
 
 def get_twitter_client():
     """
-    環境変数から認証情報を取得し、Tweepyクライアントを生成する
+    XCredentialSettingsRepositoryから利用可能な認証情報を取得し、Tweepyクライアントを生成する
     """
-    bearer_token = os.environ.get("TWITTER_BEARER_TOKEN")
+    credential_repo = XCredentialSettingsRepository()
+    credential = credential_repo.get_available_credential()
+
+    if not credential:
+        raise Exception("利用可能なTwitter API認証情報が見つかりません")
+
+    bearer_token = credential.get('bearer_token')
     if not bearer_token:
         raise Exception("Twitter API認証情報が不足しています")
+
     return tweepy.Client(bearer_token=bearer_token)
 
 def get_valid_settings():
     """
-    DynamoDBから有効な設定（end_atが未来）を取得する
+    DynamoDBから全ての設定を取得する
     """
     repo = SettingsRepository()
-    now = datetime.now(timezone.utc)
-    now_iso = now.isoformat()
-    return repo.list_valid_settings(now_iso).get('Items', [])
+    return repo.list_valid_settings().get('Items', [])
 
-def search_tweets_by_keyword(client, keyword, max_results=30):
+def search_tweets_by_keyword(client, keyword, max_results=30, error_count=0):
     """
     指定キーワードでTwitter検索を行う
     """
     try:
         tweets = client.search_recent_tweets(query=keyword, max_results=max_results, tweet_fields=["public_metrics", "created_at"])
         return tweets.data if tweets and tweets.data else []
+    except tweepy.TooManyRequests as e:
+        print(f"[BatchWatcher] Twitter検索失敗 (429 Rate Limit): {e}")
+        # Twitter APIのレート制限ヘッダーを表示
+        if hasattr(e, 'response') and e.response is not None:
+            headers = e.response.headers
+            print("[BatchWatcher] Rate Limit Headers:")
+            print(f"  x-rate-limit-limit: {headers.get('x-rate-limit-limit', 'N/A')}")
+            print(f"  x-rate-limit-remaining: {headers.get('x-rate-limit-remaining', 'N/A')}")
+            print(f"  x-rate-limit-reset: {headers.get('x-rate-limit-reset', 'N/A')}")
+            print(f"  retry-after: {headers.get('retry-after', 'N/A')}")
+
+            # x-rate-limit-resetヘッダーを取得して認証情報のリセット時間を更新
+            reset_time = headers.get('x-rate-limit-reset')
+            if reset_time:
+                try:
+                    reset_time_int = int(reset_time)
+                    # 現在使用中のbearer_tokenを取得してリセット時間を更新
+                    credential_repo = XCredentialSettingsRepository()
+                    credential = credential_repo.get_available_credential()
+                    if credential and credential.get('bearer_token'):
+                        credential_repo.update_latelimit_reset_time(credential['bearer_token'], reset_time_int)
+                        print(f"[BatchWatcher] レート制限リセット時間を更新: {reset_time_int}")
+                except (ValueError, TypeError) as parse_error:
+                    print(f"[BatchWatcher] リセット時間の解析に失敗: {parse_error}")
+
+        # エラー回数が2以下なら再帰的に再試行
+        if error_count < 2:
+            print(f"[BatchWatcher] 新しい認証情報で再試行します (試行回数: {error_count + 1})")
+            try:
+                new_client = get_twitter_client()
+                return search_tweets_by_keyword(new_client, keyword, max_results, error_count + 1)
+            except Exception as retry_error:
+                print(f"[BatchWatcher] 再試行も失敗: {retry_error}")
+                return []
+        else:
+            print(f"[BatchWatcher] 最大試行回数に達しました (試行回数: {error_count + 1})")
+            return []
     except Exception as e:
         print(f"[BatchWatcher] Twitter検索失敗: {e}")
         return []

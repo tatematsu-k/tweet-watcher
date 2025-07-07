@@ -30,7 +30,6 @@
 Lambda やローカル実行環境で、以下の環境変数を設定してください。
 
 ```
-TWITTER_BEARER_TOKEN=取得したBearer Token
 # 必要に応じて下記も設定
 TWITTER_CONSUMER_KEY=取得したAPI Key
 TWITTER_CONSUMER_SECRET=取得したAPI Secret Key

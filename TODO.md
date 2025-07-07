@@ -38,22 +38,22 @@
 
 ## 6. Slack 連携
 
-- [ ] Slack App の作成・設定
-- [ ] 必要な権限・Webhook/Token の取得
-- [ ] Slack 通知・コマンド連携の実装
+- [x] Slack App の作成・設定
+- [x] 必要な権限・Token の取得（Secrets Manager で管理）
+- [x] Slack 通知・コマンド連携の実装
 
 ## 7. デプロイ環境整備
 
-- [ ] sam build / sam deploy の Makefile または MCP コマンド化
-- [ ] samconfig.toml の整備
-- [ ] 環境変数・Secrets 管理
+- [x] sam build / sam deploy の Makefile または MCP コマンド化
+- [x] samconfig.toml の整備
+- [x] 環境変数・Secrets（Secrets Manager）管理
 
 ## 8. README.md 整備
 
 - [ ] システム構成図
 - [ ] 各リソース・Lambda の役割説明
-- [ ] デプロイ手順・ローカル開発手順
-- [ ] Slack 連携手順
+- [x] デプロイ手順・ローカル開発手順（Secrets 運用含む）
+- [x] Slack 連携手順（Secrets 運用含む）
 
 ---
 

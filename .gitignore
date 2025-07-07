@@ -1,4 +1,3 @@
-
 # Created by https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
 
 ### Linux ###
@@ -242,3 +241,11 @@ $RECYCLE.BIN/
 */build/*
 
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
+
+build/
+.aws-sam/
+*.aws-sam*
+# SAM/CloudFormation一時ファイル
+samconfig.toml
+# その他一時ファイル
+*.log
