@@ -151,8 +151,6 @@ Resources:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/publication_status-index
       Environment:
         Variables:
-          LIKE_THRESHOLD: "5"
-          RETWEET_THRESHOLD: "1"
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
           SLACK_BOT_TOKEN: !Ref SlackBotToken
       Events:
