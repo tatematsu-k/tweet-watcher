@@ -1,22 +1,13 @@
 from repositories.settings_repository import SettingsRepository
 from repositories.notifications_repository import NotificationsRepository
 from repositories.x_credential_settings_repository import XCredentialSettingsRepository
-import os
-import tweepy
 # .env自動ロード（ローカル開発用）
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
-
-def get_thresholds():
-    """
-    環境変数からLIKE/RETWEETの閾値を取得する
-    """
-    like_threshold = int(os.environ.get("LIKE_THRESHOLD", "10"))
-    retweet_threshold = int(os.environ.get("RETWEET_THRESHOLD", "1"))
-    return like_threshold, retweet_threshold
+import tweepy
 
 def get_twitter_client():
     """
@@ -121,15 +112,15 @@ def save_notifications_for_tweets(tweets, slack_ch, notifications_repo):
         else:
             print(f"[BatchWatcher] 既に通知済み: {tweet_uid} {slack_ch}")
 
-def process_setting_for_notification(setting, client, default_like_threshold, default_retweet_threshold, notifications_repo):
+def process_setting_for_notification(setting, client, notifications_repo):
     """
     1つの設定に対してTwitter検索・閾値フィルタ・通知保存をまとめて実行
     設定ごとにlike/retweet_thresholdがあればそれを使う
     """
     keyword = setting.get("keyword")
     slack_ch = setting.get("slack_ch")
-    like_threshold = setting.get("like_threshold", default_like_threshold)
-    retweet_threshold = setting.get("retweet_threshold", default_retweet_threshold)
+    like_threshold = setting.get("like_threshold")
+    retweet_threshold = setting.get("retweet_threshold")
     # None許容: 0や""はint変換、未設定はNone
     like_threshold = int(like_threshold) if like_threshold is not None and like_threshold != "" else None
     retweet_threshold = int(retweet_threshold) if retweet_threshold is not None and retweet_threshold != "" else None
@@ -144,12 +135,6 @@ def lambda_handler(event, context):
     """
     Lambdaバッチのエントリポイント。全体の流れのみ記述。
     """
-    # デフォルト値は環境変数から取得（全設定で未指定時のfallback用）
-    default_like_threshold = os.environ.get("LIKE_THRESHOLD")
-    default_retweet_threshold = os.environ.get("RETWEET_THRESHOLD")
-    default_like_threshold = int(default_like_threshold) if default_like_threshold is not None else None
-    default_retweet_threshold = int(default_retweet_threshold) if default_retweet_threshold is not None else None
-    print(f"[BatchWatcher] デフォルトLIKE閾値: {default_like_threshold}, デフォルトRT閾値: {default_retweet_threshold}")
     try:
         client = get_twitter_client()
     except Exception as e:
@@ -159,6 +144,6 @@ def lambda_handler(event, context):
     print(f"[BatchWatcher] 有効な設定: {valid_settings}")
     notifications_repo = NotificationsRepository()
     for setting in valid_settings:
-        process_setting_for_notification(setting, client, default_like_threshold, default_retweet_threshold, notifications_repo)
+        process_setting_for_notification(setting, client, notifications_repo)
     print("[BatchWatcher] Triggered by EventBridge schedule.")
     return {"statusCode": 200, "body": "Batch executed."}
