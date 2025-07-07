@@ -1,7 +1,9 @@
-from repositories.settings_repository import SettingsRepository
-from repositories.notifications_repository import NotificationsRepository
 import os
 import tweepy
+from repositories.settings_repository import SettingsRepository
+from repositories.notifications_repository import NotificationsRepository
+from repositories.x_credential_settings_repository import XCredentialSettingsRepository
+
 # .env自動ロード（ローカル開発用）
 try:
     from dotenv import load_dotenv
@@ -19,11 +21,18 @@ def get_thresholds():
 
 def get_twitter_client():
     """
-    環境変数から認証情報を取得し、Tweepyクライアントを生成する
+    XCredentialSettingsRepositoryから利用可能な認証情報を取得し、Tweepyクライアントを生成する
     """
-    bearer_token = os.environ.get("TWITTER_BEARER_TOKEN")
+    credential_repo = XCredentialSettingsRepository()
+    credential = credential_repo.get_available_credential()
+
+    if not credential:
+        raise Exception("利用可能なTwitter API認証情報が見つかりません")
+
+    bearer_token = credential.get('bearer_token')
     if not bearer_token:
         raise Exception("Twitter API認証情報が不足しています")
+
     return tweepy.Client(bearer_token=bearer_token)
 
 def get_valid_settings():
@@ -40,6 +49,31 @@ def search_tweets_by_keyword(client, keyword, max_results=30):
     try:
         tweets = client.search_recent_tweets(query=keyword, max_results=max_results, tweet_fields=["public_metrics", "created_at"])
         return tweets.data if tweets and tweets.data else []
+    except tweepy.TooManyRequests as e:
+        print(f"[BatchWatcher] Twitter検索失敗 (429 Rate Limit): {e}")
+        # Twitter APIのレート制限ヘッダーを表示
+        if hasattr(e, 'response') and e.response is not None:
+            headers = e.response.headers
+            print("[BatchWatcher] Rate Limit Headers:")
+            print(f"  x-rate-limit-limit: {headers.get('x-rate-limit-limit', 'N/A')}")
+            print(f"  x-rate-limit-remaining: {headers.get('x-rate-limit-remaining', 'N/A')}")
+            print(f"  x-rate-limit-reset: {headers.get('x-rate-limit-reset', 'N/A')}")
+            print(f"  retry-after: {headers.get('retry-after', 'N/A')}")
+
+            # x-rate-limit-resetヘッダーを取得して認証情報のリセット時間を更新
+            reset_time = headers.get('x-rate-limit-reset')
+            if reset_time:
+                try:
+                    reset_time_int = int(reset_time)
+                    # 現在使用中のbearer_tokenを取得してリセット時間を更新
+                    credential_repo = XCredentialSettingsRepository()
+                    credential = credential_repo.get_available_credential()
+                    if credential and credential.get('bearer_token'):
+                        credential_repo.update_latelimit_reset_time(credential['bearer_token'], reset_time_int)
+                        print(f"[BatchWatcher] レート制限リセット時間を更新: {reset_time_int}")
+                except (ValueError, TypeError) as parse_error:
+                    print(f"[BatchWatcher] リセット時間の解析に失敗: {parse_error}")
+        return []
     except Exception as e:
         print(f"[BatchWatcher] Twitter検索失敗: {e}")
         return []

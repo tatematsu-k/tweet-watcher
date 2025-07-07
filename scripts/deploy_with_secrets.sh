@@ -10,10 +10,6 @@ SLACK_SECRET=$(aws secretsmanager get-secret-value --secret-id tweet-watcher/sla
 SLACK_SIGNATURE=$(echo "$SLACK_SECRET" | jq -r .SLACK_SIGNATURE)
 SLACK_BOT_TOKEN=$(echo "$SLACK_SECRET" | jq -r .SLACK_BOT_TOKEN)
 
-# Twitterシークレット取得
-TWITTER_SECRET=$(aws secretsmanager get-secret-value --secret-id tweet-watcher/twitter --query 'SecretString' --output text)
-TWITTER_BEARER_TOKEN=$(echo "$TWITTER_SECRET" | jq -r .TWITTER_BEARER_TOKEN)
-
 # デプロイ用ビルドディレクトリ作成
 rm -rf build
 mkdir build
@@ -35,10 +31,6 @@ if [ -z "$SLACK_SIGNATURE" ] || [ -z "$SLACK_BOT_TOKEN" ]; then
   echo "[ERROR] Slackシークレットが取得できませんでした。setup_secrets.shで登録済みか確認してください。"
   exit 1
 fi
-if [ -z "$TWITTER_BEARER_TOKEN" ]; then
-  echo "[ERROR] Twitterシークレットが取得できませんでした。setup_secrets.shで登録済みか確認してください。"
-  exit 1
-fi
 
 echo "[INFO] sam build ..."
 sam build --use-container -t template.yaml
@@ -47,7 +39,6 @@ echo "[INFO] sam deploy ..."
 PARAMS=(
   ParameterKey=SlackSigningSecret,ParameterValue=$SLACK_SIGNATURE
   ParameterKey=SlackBotToken,ParameterValue=$SLACK_BOT_TOKEN
-  ParameterKey=TwitterBearerToken,ParameterValue=$TWITTER_BEARER_TOKEN
 )
 echo "[DEBUG] PARAMS: ${PARAMS[@]}"
 sam deploy -t template.yaml --parameter-overrides "${PARAMS[@]}" "$@"

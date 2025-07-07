@@ -28,19 +28,17 @@ else
 fi
 
 echo "--- Twitter(X) シークレット登録 ---"
-read -p "TWITTER_BEARER_TOKEN: " TWITTER_BEARER_TOKEN
 read -p "TWITTER_CONSUMER_KEY: " TWITTER_CONSUMER_KEY
 read -p "TWITTER_CONSUMER_SECRET: " TWITTER_CONSUMER_SECRET
 read -p "TWITTER_ACCESS_TOKEN: " TWITTER_ACCESS_TOKEN
 read -p "TWITTER_ACCESS_TOKEN_SECRET: " TWITTER_ACCESS_TOKEN_SECRET
 
 TWITTER_SECRET_JSON=$(jq -n \
-  --arg bearer "$TWITTER_BEARER_TOKEN" \
   --arg ckey "$TWITTER_CONSUMER_KEY" \
   --arg csecret "$TWITTER_CONSUMER_SECRET" \
   --arg atoken "$TWITTER_ACCESS_TOKEN" \
   --arg asecret "$TWITTER_ACCESS_TOKEN_SECRET" \
-  '{TWITTER_BEARER_TOKEN: $bearer, TWITTER_CONSUMER_KEY: $ckey, TWITTER_CONSUMER_SECRET: $csecret, TWITTER_ACCESS_TOKEN: $atoken, TWITTER_ACCESS_TOKEN_SECRET: $asecret}')
+  '{TWITTER_CONSUMER_KEY: $ckey, TWITTER_CONSUMER_SECRET: $csecret, TWITTER_ACCESS_TOKEN: $atoken, TWITTER_ACCESS_TOKEN_SECRET: $asecret}')
 
 if aws secretsmanager describe-secret --secret-id tweet-watcher/twitter > /dev/null 2>&1; then
   read -p "tweet-watcher/twitter は既に存在します。上書きしますか？ (y/N): " CONFIRM

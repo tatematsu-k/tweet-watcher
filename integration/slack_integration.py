@@ -54,5 +54,11 @@ class SlackIntegration(IntegrationBase):
         }
         if thread_ts:
             payload["thread_ts"] = thread_ts
-        data = self._slack_api_post("chat.postMessage", payload)
-        return data["ts"]
+        try:
+            data = self._slack_api_post("chat.postMessage", payload)
+            print(f"[SlackIntegration] Slack API response: {data}")
+            if not data.get("ok"):
+                raise Exception(f"Slack API error: {data}")
+            return data["ts"]
+        except Exception as e:
+            raise Exception(f"Slackメッセージ送信に失敗しました: {str(e)}") from e

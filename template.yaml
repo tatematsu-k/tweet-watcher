@@ -8,10 +8,19 @@ Parameters:
     Type: String
   SlackBotToken:
     Type: String
-  TwitterBearerToken:
-    Type: String
 
 Resources:
+  TweetWacherXCredentialSettingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TweetWacherXCredentialSettingsTable
+      AttributeDefinitions:
+        - AttributeName: bearer_token
+          AttributeType: S
+      KeySchema:
+        - AttributeName: bearer_token
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
   TweetWacherSettingsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -94,7 +103,6 @@ Resources:
         Variables:
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
           SLACK_BOT_TOKEN: !Ref SlackBotToken
-          TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
       Events:
         GetSettings:
           Type: Api
@@ -123,6 +131,7 @@ Resources:
       Handler: lambda_functions/event_bridge/tweet_monitor_batch.lambda_handler
       Runtime: python3.11
       CodeUri: .
+      Timeout: 30
       Layers:
         - !Ref LibLayer
       Policies:
@@ -130,6 +139,8 @@ Resources:
             TableName: !Ref TweetWacherSettingsTable
         - DynamoDBCrudPolicy:
             TableName: !Ref TweetWacherNotificationsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TweetWacherXCredentialSettingsTable
         - Statement:
             Effect: Allow
             Action:
@@ -138,25 +149,17 @@ Resources:
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/publication_status-index
-        - Statement:
-            Effect: Allow
-            Action:
-              - dynamodb:Query
-              - dynamodb:Scan
-            Resource:
-              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherXCredentialSettingsTable}
       Environment:
         Variables:
           LIKE_THRESHOLD: "5"
           RETWEET_THRESHOLD: "1"
-          TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
           SLACK_BOT_TOKEN: !Ref SlackBotToken
       Events:
         Schedule:
           Type: Schedule
           Properties:
-            Schedule: rate(15 minutes)
+            Schedule: rate(1 hour)
 
   NotifySlackFunction:
     Type: AWS::Serverless::Function
@@ -176,7 +179,6 @@ Resources:
           NOTIFICATIONS_TABLE: !Ref TweetWacherNotificationsTable
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
           SLACK_BOT_TOKEN: !Ref SlackBotToken
-          TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
       Events:
         Stream:
           Type: DynamoDB

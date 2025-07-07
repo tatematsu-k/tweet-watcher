@@ -129,8 +129,6 @@ sam delete --stack-name "tweet-watcher"
 See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
 
 Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
-<<<<<<< Updated upstream
-=======
 
 ## Secrets Manager による API キー・トークン管理
 
@@ -177,7 +175,6 @@ bash scripts/deploy_with_secrets.sh --guided
 ```sh
 export SLACK_SIGNING_SECRET=... # 事前にSecrets Manager等から取得
 export SLACK_BOT_TOKEN=...
-export TWITTER_BEARER_TOKEN=...
 export TWITTER_CONSUMER_KEY=...
 export TWITTER_CONSUMER_SECRET=...
 export TWITTER_ACCESS_TOKEN=...
@@ -186,7 +183,6 @@ sam build
 sam deploy --parameter-overrides \
   SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET \
   SLACK_BOT_TOKEN=$SLACK_BOT_TOKEN \
-  TWITTER_BEARER_TOKEN=$TWITTER_BEARER_TOKEN \
   TWITTER_CONSUMER_KEY=$TWITTER_CONSUMER_KEY \
   TWITTER_CONSUMER_SECRET=$TWITTER_CONSUMER_SECRET \
   TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN \
@@ -200,6 +196,3 @@ sam deploy --parameter-overrides \
 
 - Lambda 関数は Secrets Manager から API キー等を取得して動作します
 - template.yaml で Secrets Manager へのアクセス権限が付与されていることを確認してください
-
----
->>>>>>> Stashed changes
