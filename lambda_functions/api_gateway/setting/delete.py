@@ -1,6 +1,7 @@
 import logging
 from repositories.settings_repository import SettingsRepository
 
+
 def delete_setting(args, integration):
     if len(args) != 1:
         return integration.build_response(
@@ -17,6 +18,7 @@ def delete_setting(args, integration):
     except Exception as e:
         logging.error(f"[delete] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[delete] エラー: {str(e)}")
+
 
 def main(args, integration):
     return delete_setting(args, integration)

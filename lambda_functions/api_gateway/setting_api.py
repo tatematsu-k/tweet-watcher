@@ -2,11 +2,16 @@ from integration.slack_integration import SlackIntegration
 from lambda_functions.api_gateway.setting.create import main as create_setting_main
 from lambda_functions.api_gateway.setting.list import main as list_setting_main
 from lambda_functions.api_gateway.setting.update import main as update_setting_main
-from lambda_functions.api_gateway.setting.update_like_threshold import main as update_like_threshold_main
-from lambda_functions.api_gateway.setting.update_retweet_threshold import main as update_retweet_threshold_main
+from lambda_functions.api_gateway.setting.update_like_threshold import (
+    main as update_like_threshold_main,
+)
+from lambda_functions.api_gateway.setting.update_retweet_threshold import (
+    main as update_retweet_threshold_main,
+)
 from lambda_functions.api_gateway.setting.delete import main as delete_setting_main
 from lambda_functions.api_gateway.setting.active import main as activate_setting_main
 from lambda_functions.api_gateway.setting.inactive import main as inactive_setting_main
+
 
 def lambda_handler(event, context):
     # Slack署名検証はmain.pyで実施済み

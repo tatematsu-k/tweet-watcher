@@ -37,7 +37,9 @@ def lambda_handler(event, context):
     args = integration.parse_input(event)
 
     if len(args) < 1:
-        return integration.build_response("コマンド形式が正しくありません。/tweet-watcher [setting] help を参照してください。")
+        return integration.build_response(
+            "コマンド形式が正しくありません。/tweet-watcher [setting] help を参照してください。"
+        )
 
     domain = args[0]
     module_name = f"lambda_functions.api_gateway.{domain}_api"
@@ -50,4 +52,6 @@ def lambda_handler(event, context):
         # サブAPIのlambda_handlerにevent, context, argsを渡す
         return module.lambda_handler(event, context)
     else:
-        return integration.build_response(f"{domain}_api.py にlambda_handlerが定義されていません")
+        return integration.build_response(
+            f"{domain}_api.py にlambda_handlerが定義されていません"
+        )

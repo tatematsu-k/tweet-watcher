@@ -1,6 +1,7 @@
 import logging
 from repositories.settings_repository import SettingsRepository
 
+
 def create_setting(args, integration):
     if len(args) < 2:
         return integration.build_response(
@@ -22,6 +23,7 @@ def create_setting(args, integration):
     except Exception as e:
         logging.error(f"[create] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[create] エラー: {str(e)}")
+
 
 def main(args, integration):
     return create_setting(args, integration)
