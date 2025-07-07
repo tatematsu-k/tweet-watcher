@@ -1,6 +1,7 @@
 import os
 import sys
 import pytest
+from unittest.mock import patch
 from moto import mock_dynamodb
 import boto3
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
@@ -40,29 +41,31 @@ def setup_dynamodb():
 # SettingsRepository CRUD
 def test_put_and_get_by_id():
     repo = SettingsRepository(TABLE_NAME)
-    id = repo.put("keyword1", "C12345")
+    result = repo.put("keyword1", "C12345")
+    id = result["id"]
     got = repo.get_by_id(id)
     assert got["Item"]["keyword"] == "keyword1"
     assert got["Item"]["slack_ch"] == "C12345"
 
 def test_update_keyword_by_id():
     repo = SettingsRepository(TABLE_NAME)
-    id = repo.put("k1", "C1")
+    result = repo.put("k1", "C1")
+    id = result["id"]
     repo.update_keyword_by_id(id, "k2")
     got = repo.get_by_id(id)
     assert got["Item"]["keyword"] == "k2"
 
 def test_delete_by_id():
     repo = SettingsRepository(TABLE_NAME)
-    id = repo.put("k1", "C1")
+    result = repo.put("k1", "C1")
+    id = result["id"]
     repo.delete_by_id(id)
     got = repo.get_by_id(id)
     assert "Item" not in got
 
-
-
 # settings_api lambda_handler (Slackコマンド形式)
-def test_lambda_handler_create_list_update_delete():
+@patch("lambda_functions.api_gateway.settings_api.verify_slack_request", return_value=True)
+def test_lambda_handler_create_list_update_delete(mock_verify):
     # create
     event = {"body": "text=setting+create+kw+CH"}
     resp = settings_api.lambda_handler(event, None)
@@ -72,9 +75,13 @@ def test_lambda_handler_create_list_update_delete():
     event = {"body": "text=setting+list"}
     resp = settings_api.lambda_handler(event, None)
     assert resp["statusCode"] == 200
-    assert "設定一覧" in resp["body"]
+    assert "設定一覧" in resp["body"] or "アクティブな設定一覧" in resp["body"]
     # update
-    id = resp["body"].split("id: ")[-1].strip(")") if "id: " in resp["body"] else None
+    id = None
+    import re
+    match = re.search(r'id: ([a-zA-Z0-9]+)', resp["body"])
+    if match:
+        id = match.group(1)
     if id:
         event = {"body": f"text=setting+update+{id}+kw2"}
         resp = settings_api.lambda_handler(event, None)

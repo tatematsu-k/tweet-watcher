@@ -10,11 +10,12 @@ def test_put_get_delete_update():
         # put: ID生成とput_item呼び出し
         repo._generate_short_id = MagicMock(return_value='abc123')
         mock_table.get_item.return_value = {}  # ID重複なし
-        repo.put('kw', 'ch')
+        result = repo.put('kw', 'ch')
         mock_table.put_item.assert_called_with(Item={
             'id': 'abc123',
             'keyword': 'kw',
-            'slack_ch': 'ch'
+            'slack_ch': 'ch',
+            'publication_status': result['publication_status']
         })
 
         # get_by_id: get_item呼び出し

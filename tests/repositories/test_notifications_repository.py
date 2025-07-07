@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from repositories.notifications_repository import NotificationsRepository
 
@@ -22,5 +21,5 @@ def test_exists_and_put():
             'tweet_uid': '3',
             'tweet_url': 'url',
             'slack_ch': 'ch',
-            'notified_at': '2025-01-01T00:00:00Z'
+            'slack_message_ts': '2025-01-01T00:00:00Z'
         })
