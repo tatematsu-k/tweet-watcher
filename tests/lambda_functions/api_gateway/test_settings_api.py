@@ -1,9 +1,6 @@
 import os
 import sys
 import pytest
-from unittest.mock import patch
-from moto import mock_dynamodb
-import boto3
 
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
@@ -12,33 +9,14 @@ from repositories.settings_repository import SettingsRepository
 from lambda_functions.api_gateway import setting_api
 from integration.integration_base import IntegrationBase
 from integration.slack_integration import SlackIntegration
+from tests.mock.dynamodb import setup_dynamodb_all_tables
 
 TABLE_NAME = "TweetWacherSettingsTable"
 
 
 @pytest.fixture(autouse=True)
 def setup_dynamodb():
-    os.environ["AWS_DEFAULT_REGION"] = "ap-northeast-1"
-    with mock_dynamodb():
-        dynamodb = boto3.resource("dynamodb", region_name="ap-northeast-1")
-        dynamodb.create_table(
-            TableName=TABLE_NAME,
-            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
-            AttributeDefinitions=[
-                {"AttributeName": "id", "AttributeType": "S"},
-                {"AttributeName": "publication_status", "AttributeType": "S"},
-            ],
-            GlobalSecondaryIndexes=[
-                {
-                    "IndexName": "publication_status-index",
-                    "KeySchema": [
-                        {"AttributeName": "publication_status", "KeyType": "HASH"}
-                    ],
-                    "Projection": {"ProjectionType": "ALL"},
-                }
-            ],
-            BillingMode="PAY_PER_REQUEST",
-        )
+    with setup_dynamodb_all_tables():
         os.environ["SETTINGS_TABLE"] = TABLE_NAME
         yield
 

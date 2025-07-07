@@ -1,6 +1,21 @@
+import os
+import sys
+import pytest
+
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+)
 from unittest.mock import MagicMock, patch
 from repositories.notifications_repository import NotificationsRepository
+from tests.mock.dynamodb import setup_dynamodb_all_tables
 
+TABLE_NAME = "TweetWacherNotificationsTable"
+
+@pytest.fixture(autouse=True)
+def setup_dynamodb():
+    with setup_dynamodb_all_tables():
+        os.environ["NOTIFICATIONS_TABLE"] = TABLE_NAME
+        yield
 
 def test_exists_and_put():
     # boto3.resourceのモック

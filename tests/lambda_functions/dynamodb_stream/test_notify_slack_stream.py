@@ -1,6 +1,21 @@
 import os
+import sys
+import pytest
 from unittest.mock import patch, MagicMock
+
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+)
 from lambda_functions.dynamodb_stream import notify_slack_stream
+from tests.mock.dynamodb import setup_dynamodb_all_tables
+
+TABLE_NAME = "TweetWacherNotificationsTable"
+
+@pytest.fixture(autouse=True)
+def setup_dynamodb():
+    with setup_dynamodb_all_tables():
+        os.environ["NOTIFICATIONS_TABLE"] = TABLE_NAME
+        yield
 
 
 def make_stream_event(tweet_uid, tweet_url, slack_ch, notified_at=None):
