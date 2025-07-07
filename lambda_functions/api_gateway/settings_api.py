@@ -50,6 +50,10 @@ def lambda_handler(event, context):
         return get_setting(args[2:], integration)
     elif action == "update":
         return update_setting(args[2:], integration)
+    elif action == "update_like_threshold":
+        return update_like_threshold(args[2:], integration)
+    elif action == "update_retweet_threshold":
+        return update_retweet_threshold(args[2:], integration)
     elif action == "delete":
         return delete_setting(args[2:], integration)
     elif action == "active":
@@ -61,11 +65,13 @@ def lambda_handler(event, context):
 
 def help_text():
     return (
-        "使い方: /tweet-watcher setting [create|list|update|delete|active|inactive|help] ...\n"
+        "使い方: /tweet-watcher setting [create|list|update|update_like_threshold|update_retweet_threshold|delete|active|inactive|help] ...\n"
         "例:\n"
-        "/tweet-watcher setting create 'キーワード1 キーワード2' #slackチャンネル\n"
+        "/tweet-watcher setting create 'キーワード1 キーワード2' #slackチャンネル [like閾値] [retweet閾値]\n"
         "/tweet-watcher setting list (-a)\n"
         "/tweet-watcher setting update id '新キーワード'\n"
+        "/tweet-watcher setting update_like_threshold id 値\n"
+        "/tweet-watcher setting update_retweet_threshold id 値\n"
         "/tweet-watcher setting delete id\n"
         "/tweet-watcher setting active id\n"
         "/tweet-watcher setting inactive id\n"
@@ -73,13 +79,22 @@ def help_text():
     )
 
 def create_setting(args, integration):
-    if len(args) != 2:
+    # [キーワード] [slack_ch] [like_threshold] [retweet_threshold]（後ろ2つは任意）
+    if len(args) < 2:
         return integration.build_response("[create] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。")
-    keyword, slack_ch = args
+    keyword = args[0]
+    slack_ch = args[1]
+    like_threshold = int(args[2]) if len(args) > 2 and args[2] != "" else None
+    retweet_threshold = int(args[3]) if len(args) > 3 and args[3] != "" else None
     settings_repo = SettingsRepository()
     try:
-        resp = settings_repo.put(keyword, slack_ch)
-        return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} (id: {resp['id']}, publication_status: {resp['publication_status']})")
+        resp = settings_repo.put(keyword, slack_ch, like_threshold, retweet_threshold)
+        msg = f"[create] 登録しました: {keyword} {slack_ch} (id: {resp['id']}, publication_status: {resp['publication_status']})"
+        if like_threshold is not None:
+            msg += f" like閾値: {like_threshold}"
+        if retweet_threshold is not None:
+            msg += f" retweet閾値: {retweet_threshold}"
+        return integration.build_response(msg)
     except Exception as e:
         logging.error(f"[create] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[create] エラー: {str(e)}")
@@ -174,3 +189,33 @@ def deactivate_setting(args, integration):
     except Exception as e:
         logging.error(f"[inactive] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[inactive] エラー: {str(e)}")
+
+def update_like_threshold(args, integration):
+    if len(args) != 2:
+        return integration.build_response("[update_like_threshold] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。\n例: /tweet-watcher setting update_like_threshold id 値")
+    id, value = args
+    settings_repo = SettingsRepository()
+    try:
+        resp = settings_repo.get_by_id(id)
+        if "Item" not in resp:
+            return integration.build_response(f"[update_like_threshold] 該当設定がありません: id={id}")
+        settings_repo.update_like_threshold_by_id(id, value)
+        return integration.build_response(f"[update_like_threshold] 更新しました: id={id} like_threshold={value}")
+    except Exception as e:
+        logging.error(f"[update_like_threshold] エラーが発生しました: {str(e)}", exc_info=True)
+        return integration.build_response(f"[update_like_threshold] エラー: {str(e)}")
+
+def update_retweet_threshold(args, integration):
+    if len(args) != 2:
+        return integration.build_response("[update_retweet_threshold] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。\n例: /tweet-watcher setting update_retweet_threshold id 値")
+    id, value = args
+    settings_repo = SettingsRepository()
+    try:
+        resp = settings_repo.get_by_id(id)
+        if "Item" not in resp:
+            return integration.build_response(f"[update_retweet_threshold] 該当設定がありません: id={id}")
+        settings_repo.update_retweet_threshold_by_id(id, value)
+        return integration.build_response(f"[update_retweet_threshold] 更新しました: id={id} retweet_threshold={value}")
+    except Exception as e:
+        logging.error(f"[update_retweet_threshold] エラーが発生しました: {str(e)}", exc_info=True)
+        return integration.build_response(f"[update_retweet_threshold] エラー: {str(e)}")

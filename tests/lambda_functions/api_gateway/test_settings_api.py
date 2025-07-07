@@ -65,28 +65,34 @@ def test_delete_by_id():
 
 # settings_api lambda_handler (Slackコマンド形式)
 @patch("lambda_functions.api_gateway.settings_api.verify_slack_request", return_value=True)
-def test_lambda_handler_create_list_update_delete(mock_verify):
-    # create
-    event = {"body": "text=setting+create+kw+CH"}
+def test_lambda_handler_create_list_update_delete_and_threshold(mock_verify):
+    # create with threshold
+    event = {"body": "text=setting+create+kw+CH+15+3"}
     resp = settings_api.lambda_handler(event, None)
     assert resp["statusCode"] == 200
     assert "登録しました" in resp["body"]
+    assert "like閾値: 15" in resp["body"]
+    assert "retweet閾値: 3" in resp["body"]
     # list
     event = {"body": "text=setting+list"}
     resp = settings_api.lambda_handler(event, None)
     assert resp["statusCode"] == 200
     assert "設定一覧" in resp["body"] or "アクティブな設定一覧" in resp["body"]
-    # update
-    id = None
+    # id取得
     import re
     match = re.search(r'id: ([a-zA-Z0-9]+)', resp["body"])
-    if match:
-        id = match.group(1)
+    id = match.group(1) if match else None
     if id:
-        event = {"body": f"text=setting+update+{id}+kw2"}
+        # update_like_threshold
+        event = {"body": f"text=setting+update_like_threshold+{id}+99"}
         resp = settings_api.lambda_handler(event, None)
         assert resp["statusCode"] == 200
-        assert "更新しました" in resp["body"]
+        assert "like_threshold=99" in resp["body"]
+        # update_retweet_threshold
+        event = {"body": f"text=setting+update_retweet_threshold+{id}+77"}
+        resp = settings_api.lambda_handler(event, None)
+        assert resp["statusCode"] == 200
+        assert "retweet_threshold=77" in resp["body"]
         # delete
         event = {"body": f"text=setting+delete+{id}"}
         resp = settings_api.lambda_handler(event, None)
