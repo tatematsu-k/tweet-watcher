@@ -71,14 +71,6 @@ def test_delete_by_id():
     assert "Item" not in got
 
 
-# settings_api lambda_handler (Slackコマンド形式)
-# @patch(
-#     "lambda_functions.api_gateway.settings_api.verify_slack_request", return_value=True
-# )
-# def test_lambda_handler_create_list_update_delete_and_threshold(mock_verify):
-#     ...（このテスト全体を削除）
-
-
 # IntegrationBase, SlackIntegration
 class DummyIntegration(IntegrationBase):
     def parse_input(self, event):
