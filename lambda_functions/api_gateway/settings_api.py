@@ -10,6 +10,7 @@ from lambda_functions.api_gateway.setting.list import main as list_setting_main
 from lambda_functions.api_gateway.setting.update import main as update_setting_main
 from lambda_functions.api_gateway.setting.update_like_threshold import main as update_like_threshold_main
 from lambda_functions.api_gateway.setting.update_retweet_threshold import main as update_retweet_threshold_main
+from lambda_functions.api_gateway.setting.delete import main as delete_setting_main
 
 
 def get_slack_signing_secret():
@@ -58,7 +59,7 @@ def lambda_handler(event, context):
     elif action == "update_retweet_threshold":
         return update_retweet_threshold_main(args[2:], integration)
     elif action == "delete":
-        return delete_setting(args[2:], integration)
+        return delete_setting_main(args[2:], integration)
     elif action == "active":
         return activate_setting(args[2:], integration)
     elif action == "inactive":
