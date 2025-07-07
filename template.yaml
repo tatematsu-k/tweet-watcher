@@ -20,37 +20,43 @@ Parameters:
     Type: String
 
 Resources:
-  SettingsTable:
+  TweetWacherSettingsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: SettingsTable
+      TableName: TweetWacherSettingsTable
       AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
         - AttributeName: keyword
           AttributeType: S
         - AttributeName: slack_ch
           AttributeType: S
-        - AttributeName: end_at
+        - AttributeName: status
           AttributeType: S
       KeySchema:
-        - AttributeName: keyword
+        - AttributeName: id
           KeyType: HASH
-        - AttributeName: slack_ch
-          KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
       GlobalSecondaryIndexes:
-        - IndexName: end_at-index
+        - IndexName: status-index
           KeySchema:
-            - AttributeName: end_at
+            - AttributeName: status
               KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: keyword-index
+          KeySchema:
             - AttributeName: keyword
+              KeyType: HASH
+            - AttributeName: slack_ch
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
 
-  NotificationsTable:
+  TweetWacherNotificationsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: NotificationsTable
+      TableName: TweetWacherNotificationsTable
       AttributeDefinitions:
         - AttributeName: tweet_uid
           AttributeType: S
@@ -95,7 +101,16 @@ Resources:
         - !Ref LibLayer
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref SettingsTable
+            TableName: !Ref TweetWacherSettingsTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:Scan
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/status-index
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/keyword-index
       Environment:
         Variables:
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
@@ -137,13 +152,21 @@ Resources:
         - !Ref LibLayer
       Policies:
         - DynamoDBReadPolicy:
-            TableName: !Ref SettingsTable
+            TableName: !Ref TweetWacherSettingsTable
         - DynamoDBCrudPolicy:
-            TableName: !Ref NotificationsTable
+            TableName: !Ref TweetWacherNotificationsTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:Scan
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TweetWacherSettingsTable}/index/status-index
       Environment:
         Variables:
-          LIKE_THRESHOLD: "10"
-          RETWEET_THRESHOLD: "5"
+          LIKE_THRESHOLD: "5"
+          RETWEET_THRESHOLD: "1"
           TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
           TWITTER_CONSUMER_KEY: !Ref TwitterConsumerKey
           TWITTER_CONSUMER_SECRET: !Ref TwitterConsumerSecret
@@ -167,12 +190,12 @@ Resources:
         - !Ref LibLayer
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref NotificationsTable
+            TableName: !Ref TweetWacherNotificationsTable
         # Slack通知用の外部APIアクセス権限が必要なら追加
       Environment:
         Variables:
           SLACK_WEBHOOK_URL: ""
-          NOTIFICATIONS_TABLE: !Ref NotificationsTable
+          NOTIFICATIONS_TABLE: !Ref TweetWacherNotificationsTable
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
           SLACK_BOT_TOKEN: !Ref SlackBotToken
           TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
@@ -184,5 +207,5 @@ Resources:
         Stream:
           Type: DynamoDB
           Properties:
-            Stream: !GetAtt NotificationsTable.StreamArn
+            Stream: !GetAtt TweetWacherNotificationsTable.StreamArn
             StartingPosition: LATEST

@@ -28,7 +28,7 @@ def test_notify_and_update(mock_boto3_resource, mock_slack_integration):
     mock_slack = MagicMock()
     mock_slack.send_message.return_value = "12345.6789"
     mock_slack_integration.return_value = mock_slack
-    os.environ["NOTIFICATIONS_TABLE"] = "NotificationsTable"
+    os.environ["NOTIFICATIONS_TABLE"] = "TweetWacherNotificationsTable"
     os.environ["SLACK_BOT_TOKEN"] = "dummy"
 
     event = make_stream_event("uid1", "https://x.com/1", "C12345")
@@ -48,7 +48,7 @@ def test_idempotency(mock_boto3_resource, mock_slack_integration):
     mock_boto3_resource.return_value.Table.return_value = mock_table
     mock_slack = MagicMock()
     mock_slack_integration.return_value = mock_slack
-    os.environ["NOTIFICATIONS_TABLE"] = "NotificationsTable"
+    os.environ["NOTIFICATIONS_TABLE"] = "TweetWacherNotificationsTable"
     os.environ["SLACK_BOT_TOKEN"] = "dummy"
 
     event = make_stream_event("uid2", "https://x.com/2", "C12345", notified_at="2024-07-01T00:00:00Z")

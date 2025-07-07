@@ -8,7 +8,7 @@ def lambda_handler(event, context):
     DynamoDB Streamsの新規レコード追加をトリガーにSlack通知を送信し、notified_atとslack_message_tsを更新するLambda関数。
     多重実行防止も考慮。
     """
-    table_name = os.environ.get("NOTIFICATIONS_TABLE", "NotificationsTable")
+    table_name = os.environ.get("NOTIFICATIONS_TABLE", "TweetWacherNotificationsTable")
     slack_bot_token = os.environ.get("SLACK_BOT_TOKEN")
     dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(table_name)

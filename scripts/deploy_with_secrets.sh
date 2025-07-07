@@ -24,7 +24,6 @@ mkdir build
 rsync -av --exclude='__pycache__' --exclude='.git' --exclude='*.pyc' lambda_functions/ build/lambda_functions/
 rsync -av --exclude='__pycache__' --exclude='.git' --exclude='*.pyc' integration/ build/integration/
 rsync -av --exclude='__pycache__' --exclude='.git' --exclude='*.pyc' repositories/ build/repositories/
-rsync -av --exclude='__pycache__' --exclude='.git' --exclude='*.pyc' common/ build/common/
 cp template.yaml samconfig.toml build/
 touch build/__init__.py
 

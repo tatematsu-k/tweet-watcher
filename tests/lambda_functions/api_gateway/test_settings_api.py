@@ -9,7 +9,7 @@ from lambda_functions.api_gateway import settings_api
 from integration.integration_base import IntegrationBase
 from integration.slack_integration import SlackIntegration
 
-TABLE_NAME = "SettingsTable"
+TABLE_NAME = "TweetWacherSettingsTable"
 
 @pytest.fixture(autouse=True)
 def setup_dynamodb():
@@ -40,31 +40,29 @@ def setup_dynamodb():
 # SettingsRepository CRUD
 def test_put_and_get_by_id():
     repo = SettingsRepository(TABLE_NAME)
-    id = repo.put("keyword1", "C12345", "2024-12-31T00:00:00+09:00")
+    id = repo.put("keyword1", "C12345")
     got = repo.get_by_id(id)
     assert got["Item"]["keyword"] == "keyword1"
     assert got["Item"]["slack_ch"] == "C12345"
-    assert got["Item"]["end_at"] == "2024-12-31T00:00:00+09:00"
 
 def test_update_by_id():
     repo = SettingsRepository(TABLE_NAME)
-    id = repo.put("k1", "C1", "2024-01-01T00:00:00+09:00")
-    repo.update_by_id(id, "2025-01-01T00:00:00+09:00", "k2")
+    id = repo.put("k1", "C1")
+    repo.update_by_id(id, "k2")
     got = repo.get_by_id(id)
     assert got["Item"]["keyword"] == "k2"
-    assert got["Item"]["end_at"] == "2025-01-01T00:00:00+09:00"
 
 def test_delete_by_id():
     repo = SettingsRepository(TABLE_NAME)
-    id = repo.put("k1", "C1", "2024-01-01T00:00:00+09:00")
+    id = repo.put("k1", "C1")
     repo.delete_by_id(id)
     got = repo.get_by_id(id)
     assert "Item" not in got
 
 def test_query_by_keyword():
     repo = SettingsRepository(TABLE_NAME)
-    repo.put('k1', 'C1', '2025-01-01T00:00:00Z')
-    repo.put('k1', 'C2', '2025-01-01T00:00:00Z')
+    repo.put('k1', 'C1')
+    repo.put('k1', 'C2')
     resp = repo.query_by_keyword("k1")
     items = resp.get("Items", [])
     assert len(items) == 2
@@ -74,7 +72,7 @@ def test_query_by_keyword():
 # settings_api lambda_handler (Slackコマンド形式)
 def test_lambda_handler_create_read_update_delete():
     # create
-    event = {"body": "text=setting+create+kw+CH+2024-12-31"}
+    event = {"body": "text=setting+create+kw+CH"}
     resp = settings_api.lambda_handler(event, None)
     assert resp["statusCode"] == 200
     assert "登録しました" in resp["body"]
@@ -86,7 +84,7 @@ def test_lambda_handler_create_read_update_delete():
     # update
     id = resp["body"].split("id: ")[-1].strip(")") if "id: " in resp["body"] else None
     if id:
-        event = {"body": f"text=setting+update+{id}+kw2+2025-01-01"}
+        event = {"body": f"text=setting+update+{id}+kw2"}
         resp = settings_api.lambda_handler(event, None)
         assert resp["statusCode"] == 200
         assert "更新しました" in resp["body"]

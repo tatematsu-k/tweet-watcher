@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from repositories.settings_repository import SettingsRepository
 from repositories.notifications_repository import NotificationsRepository
 import os
@@ -15,7 +14,7 @@ def get_thresholds():
     環境変数からLIKE/RETWEETの閾値を取得する
     """
     like_threshold = int(os.environ.get("LIKE_THRESHOLD", "10"))
-    retweet_threshold = int(os.environ.get("RETWEET_THRESHOLD", "5"))
+    retweet_threshold = int(os.environ.get("RETWEET_THRESHOLD", "1"))
     return like_threshold, retweet_threshold
 
 def get_twitter_client():
@@ -29,12 +28,10 @@ def get_twitter_client():
 
 def get_valid_settings():
     """
-    DynamoDBから有効な設定（end_atが未来）を取得する
+    DynamoDBから全ての設定を取得する
     """
     repo = SettingsRepository()
-    now = datetime.now(timezone.utc)
-    now_iso = now.isoformat()
-    return repo.list_valid_settings(now_iso).get('Items', [])
+    return repo.list_valid_settings().get('Items', [])
 
 def search_tweets_by_keyword(client, keyword, max_results=30):
     """

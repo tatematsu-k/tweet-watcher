@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 class NotificationsRepository:
     def __init__(self, table_name=None):
         self.dynamodb = boto3.resource("dynamodb")
-        self.table_name = table_name or os.environ.get("NOTIFICATIONS_TABLE", "NotificationsTable")
+        self.table_name = table_name or os.environ.get("NOTIFICATIONS_TABLE", "TweetWacherNotificationsTable")
         self.table = self.dynamodb.Table(self.table_name)
 
     def exists(self, tweet_uid, slack_ch):

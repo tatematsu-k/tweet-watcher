@@ -10,7 +10,7 @@
 
 ## 2. テーブル設計
 
-- SettingsTable の主キーは id（ユニーク・短い英数字 6 桁）
+- TweetWacherSettingsTable の主キーは id（ユニーク・短い英数字 6 桁）
 - keyword+slack_ch で GSI を作成し、検索・重複チェックに利用
 - id は DynamoDB の主キーなのでユニーク制約が自動で効く
 
@@ -24,7 +24,6 @@
   - ストレージ操作を 1 箇所にまとめることで、ビジネスロジックと分離
   - DynamoDB 以外のストレージやテスト用モックへの差し替えも容易
   - API 層は Repository 経由でデータ操作することで責務分離・テスト容易化
-- parse_end_at 等の共通処理は common 配下に分離
 
 ## 4. その他
 
