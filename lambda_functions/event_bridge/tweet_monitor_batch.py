@@ -1,9 +1,8 @@
-import os
-import tweepy
 from repositories.settings_repository import SettingsRepository
 from repositories.notifications_repository import NotificationsRepository
 from repositories.x_credential_settings_repository import XCredentialSettingsRepository
-
+import os
+import tweepy
 # .env自動ロード（ローカル開発用）
 try:
     from dotenv import load_dotenv
