@@ -1,6 +1,5 @@
 import os
 import boto3
-from datetime import datetime, timezone
 
 class NotificationsRepository:
     def __init__(self, table_name=None):
@@ -12,11 +11,13 @@ class NotificationsRepository:
         resp = self.table.get_item(Key={"tweet_uid": tweet_uid, "slack_ch": slack_ch})
         return 'Item' in resp
 
-    def put(self, tweet_uid, tweet_url, slack_ch, slack_message_ts=None):
+    def put(self, tweet_uid, tweet_url, slack_ch, like_count, retweet_count, slack_message_ts=None):
         item = {
             "tweet_uid": tweet_uid,
             "tweet_url": tweet_url,
-            "slack_ch": slack_ch
+            "slack_ch": slack_ch,
+            "like_count": like_count,
+            "retweet_count": retweet_count
         }
         if slack_message_ts is not None:
             item["slack_message_ts"] = slack_message_ts

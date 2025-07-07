@@ -109,9 +109,12 @@ def save_notifications_for_tweets(tweets, slack_ch, notifications_repo):
     for tweet in tweets:
         tweet_uid = str(tweet.id) if hasattr(tweet, 'id') else tweet.get('id')
         tweet_url = f"https://twitter.com/i/web/status/{tweet_uid}"
+        metrics = tweet.public_metrics if hasattr(tweet, 'public_metrics') else tweet.get('public_metrics', {})
+        like_count = metrics.get('like_count', 0)
+        retweet_count = metrics.get('retweet_count', 0)
         if not notifications_repo.exists(tweet_uid, slack_ch):
-            notifications_repo.put(tweet_uid, tweet_url, slack_ch)
-            print(f"[BatchWatcher] 通知テーブルに保存: {tweet_uid} {tweet_url} {slack_ch}")
+            notifications_repo.put(tweet_uid, tweet_url, slack_ch, like_count, retweet_count)
+            print(f"[BatchWatcher] 通知テーブルに保存: {tweet_uid} {tweet_url} {slack_ch} {like_count} {retweet_count}")
         else:
             print(f"[BatchWatcher] 既に通知済み: {tweet_uid} {slack_ch}")
 
