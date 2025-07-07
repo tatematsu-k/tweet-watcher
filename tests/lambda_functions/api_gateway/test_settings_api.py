@@ -45,10 +45,10 @@ def test_put_and_get_by_id():
     assert got["Item"]["keyword"] == "keyword1"
     assert got["Item"]["slack_ch"] == "C12345"
 
-def test_update_by_id():
+def test_update_keyword_by_id():
     repo = SettingsRepository(TABLE_NAME)
     id = repo.put("k1", "C1")
-    repo.update_by_id(id, "k2")
+    repo.update_keyword_by_id(id, "k2")
     got = repo.get_by_id(id)
     assert got["Item"]["keyword"] == "k2"
 

@@ -52,17 +52,23 @@ def lambda_handler(event, context):
         return update_setting(args[2:], integration)
     elif action == "delete":
         return delete_setting(args[2:], integration)
+    elif action == "active":
+        return activate_setting(args[2:], integration)
+    elif action == "inactive":
+        return deactivate_setting(args[2:], integration)
     else:
         return integration.build_response("不明なアクションです。/tweet-watcher setting help を参照してください。")
 
 def help_text():
     return (
-        "使い方: /tweet-watcher setting [create|read|update|delete|help] ...\n"
+        "使い方: /tweet-watcher setting [create|read|update|delete|active|inactive|help] ...\n"
         "例:\n"
         "/tweet-watcher setting create 'キーワード1 キーワード2' #slackチャンネル\n"
         "/tweet-watcher setting (read|list) 'キーワード'\n"
         "/tweet-watcher setting update id '新キーワード'\n"
         "/tweet-watcher setting delete id\n"
+        "/tweet-watcher setting active id\n"
+        "/tweet-watcher setting inactive id\n"
         "/tweet-watcher setting help"
     )
 
@@ -75,8 +81,8 @@ def create_setting(args, integration):
         # keyword+slack_ch重複チェック
         if settings_repo.get_by_keyword_slackch(keyword, slack_ch):
             return integration.build_response(f"[create] 既に登録済みです: {keyword} {slack_ch}")
-        id = settings_repo.put(keyword, slack_ch)
-        return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} (id: {id})")
+        resp = settings_repo.put(keyword, slack_ch)
+        return integration.build_response(f"[create] 登録しました: {keyword} {slack_ch} (id: {resp['id']}, status: {resp['status']})")
     except Exception as e:
         logging.error(f"[create] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[create] エラー: {str(e)}")
@@ -118,7 +124,7 @@ def update_setting(args, integration):
         resp = settings_repo.get_by_id(id)
         if "Item" not in resp:
             return integration.build_response(f"[update] 該当設定がありません: id={id}")
-        settings_repo.update_by_id(id, new_keyword)
+        settings_repo.update_keyword_by_id(id, new_keyword)
         return integration.build_response(f"[update] 更新しました: id={id} {new_keyword}")
     except Exception as e:
         logging.error(f"[update] エラーが発生しました: {str(e)}", exc_info=True)
@@ -138,3 +144,29 @@ def delete_setting(args, integration):
     except Exception as e:
         logging.error(f"[delete] エラーが発生しました: {str(e)}", exc_info=True)
         return integration.build_response(f"[delete] エラー: {str(e)}")
+
+def activate_setting(args, integration):
+    if len(args) != 1:
+        return integration.build_response("[active] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。\n例: /tweet-watcher setting active id")
+    id = args[0]
+    settings_repo = SettingsRepository()
+    try:
+        resp = settings_repo.get_by_id(id)
+        if "Item" not in resp:
+            return integration.build_response(f"[active] 該当設定がありません: id={id}")
+        settings_repo.update_status_active_by_id(id)
+        return integration.build_response(f"[active] アクティブにしました: id={id}")
+    except Exception as e:
+        logging.error(f"[active] エラーが発生しました: {str(e)}", exc_info=True)
+        return integration.build_response(f"[active] エラー: {str(e)}")
+
+def deactivate_setting(args, integration):
+    if len(args) != 1:
+        return integration.build_response("[inactive] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。\n例: /tweet-watcher setting inactive id")
+    id = args[0]
+    settings_repo = SettingsRepository()
+    try:
+        resp = settings_repo.get_by_id(id)
+        if "Item" not in resp:
+            return integration.build_response(f"[inactive] 該当設定がありません: id={id}")
+        settings_repo.update_status_inactive_by_id(id)

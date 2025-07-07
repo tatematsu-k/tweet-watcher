@@ -2,8 +2,12 @@ import os
 import boto3
 import random
 import string
+from boto3.dynamodb.conditions import Key
 
 class SettingsRepository:
+    # アクティブな設定の最大件数
+    MAX_ACTIVE_SETTINGS = 3
+
     def __init__(self, table_name=None):
         self.dynamodb = boto3.resource("dynamodb")
         self.table_name = table_name or os.environ.get("SETTINGS_TABLE", "TweetWacherSettingsTable")
@@ -15,7 +19,7 @@ class SettingsRepository:
     def get_by_keyword_slackch(self, keyword, slack_ch):
         resp = self.table.query(
             IndexName="keyword-index",
-            KeyConditionExpression=boto3.dynamodb.conditions.Key('keyword').eq(keyword) & boto3.dynamodb.conditions.Key('slack_ch').eq(slack_ch)
+            KeyConditionExpression=Key('keyword').eq(keyword) & Key('slack_ch').eq(slack_ch)
         )
         items = resp.get('Items', [])
         return items[0] if items else None
@@ -31,12 +35,39 @@ class SettingsRepository:
                 break
         else:
             raise Exception('ID生成に失敗しました')
-        self.table.put_item(Item={"id": id, "keyword": keyword, "slack_ch": slack_ch})
-        return id
 
-    def update_by_id(self, id, keyword):
+        # 現在のアクティブ設定数をチェックしてstatusを決定
+        current_active_count = self.valid_setting_count()
+        status = "active" if current_active_count < self.MAX_ACTIVE_SETTINGS else "inactive"
+
+        self.table.put_item(Item={"id": id, "keyword": keyword, "slack_ch": slack_ch, "status": status})
+        return {"id": id, "status": status}
+
+    def update_keyword_by_id(self, id, keyword):
         update_expr = "SET keyword = :keyword"
         expr_attr = {":keyword": keyword}
+        return self.table.update_item(
+            Key={"id": id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_attr
+        )
+
+    def update_status_active_by_id(self, id):
+        # アクティブな設定がMAX_ACTIVE_SETTINGS件以上ある場合はエラーを返す
+        if self.valid_setting_count() >= self.MAX_ACTIVE_SETTINGS:
+            raise Exception('アクティブな設定は3件までしか登録できません')
+
+        update_expr = "SET status = :status"
+        expr_attr = {":status": "active"}
+        return self.table.update_item(
+            Key={"id": id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_attr
+        )
+
+    def update_status_inactive_by_id(self, id):
+        update_expr = "SET status = :status"
+        expr_attr = {":status": "inactive"}
         return self.table.update_item(
             Key={"id": id},
             UpdateExpression=update_expr,
@@ -47,14 +78,17 @@ class SettingsRepository:
         return self.table.delete_item(Key={"id": id})
 
     def query_by_keyword(self, keyword):
-        from boto3.dynamodb.conditions import Key
         return self.table.query(IndexName="keyword-index", KeyConditionExpression=Key('keyword').eq(keyword))
 
     def list_all(self):
         return self.table.scan()
 
     def list_valid_settings(self):
-        response = self.table.scan()
-        items = response.get('Items', [])
-        # 全てのアイテムを返す
-        return {'Items': items}
+        response = self.table.query(
+            IndexName="status-index",
+            KeyConditionExpression=Key('status').eq('active')
+        )
+        return response
+
+    def valid_setting_count(self):
+        return len(self.list_valid_settings().get('Items', []))

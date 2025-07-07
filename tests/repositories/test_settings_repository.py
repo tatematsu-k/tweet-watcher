@@ -25,8 +25,8 @@ def test_put_get_delete_update():
         repo.delete_by_id('abc123')
         mock_table.delete_item.assert_called_with(Key={'id': 'abc123'})
 
-        # update_by_id: update_item呼び出し
-        repo.update_by_id('abc123', 'kw2')
+        # update_keyword_by_id: update_item呼び出し
+        repo.update_keyword_by_id('abc123', 'kw2')
         mock_table.update_item.assert_called_with(
             Key={'id': 'abc123'},
             UpdateExpression='SET keyword = :keyword',
