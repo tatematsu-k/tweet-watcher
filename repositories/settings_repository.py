@@ -20,7 +20,7 @@ class SettingsRepository:
         chars = string.ascii_letters + string.digits
         return ''.join(random.choices(chars, k=length))
 
-    def put(self, keyword, slack_ch):
+    def put(self, keyword, slack_ch, like_threshold=None, retweet_threshold=None):
         for _ in range(10):
             id = self._generate_short_id()
             if not self.get_by_id(id).get('Item'):
@@ -32,7 +32,17 @@ class SettingsRepository:
         current_active_count = self.valid_setting_count()
         publication_status = "active" if current_active_count < self.MAX_ACTIVE_SETTINGS else "inactive"
 
-        self.table.put_item(Item={"id": id, "keyword": keyword, "slack_ch": slack_ch, "publication_status": publication_status})
+        item = {
+            "id": id,
+            "keyword": keyword,
+            "slack_ch": slack_ch,
+            "publication_status": publication_status
+        }
+        if like_threshold is not None:
+            item["like_threshold"] = int(like_threshold)
+        if retweet_threshold is not None:
+            item["retweet_threshold"] = int(retweet_threshold)
+        self.table.put_item(Item=item)
         return {"id": id, "publication_status": publication_status}
 
     def update_keyword_by_id(self, id, keyword):
@@ -81,3 +91,21 @@ class SettingsRepository:
 
     def valid_setting_count(self):
         return len(self.list_valid_settings().get('Items', []))
+
+    def update_like_threshold_by_id(self, id, like_threshold):
+        update_expr = "SET like_threshold = :like_threshold"
+        expr_attr = {":like_threshold": int(like_threshold) if like_threshold is not None else None}
+        return self.table.update_item(
+            Key={"id": id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_attr
+        )
+
+    def update_retweet_threshold_by_id(self, id, retweet_threshold):
+        update_expr = "SET retweet_threshold = :retweet_threshold"
+        expr_attr = {":retweet_threshold": int(retweet_threshold) if retweet_threshold is not None else None}
+        return self.table.update_item(
+            Key={"id": id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_attr
+        )

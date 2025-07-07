@@ -92,13 +92,16 @@ def search_tweets_by_keyword(client, keyword, max_results=30, error_count=0):
 def filter_tweets_by_thresholds(tweets, like_threshold, retweet_threshold):
     """
     like_count, retweet_countが閾値以上のツイートのみ抽出
+    閾値がNoneの場合はその条件を無視
     """
     filtered = []
     for tweet in tweets:
         metrics = tweet.public_metrics if hasattr(tweet, 'public_metrics') else tweet.get('public_metrics', {})
         like_count = metrics.get('like_count', 0)
         retweet_count = metrics.get('retweet_count', 0)
-        if like_count >= like_threshold and retweet_count >= retweet_threshold:
+        like_ok = True if like_threshold is None else like_count >= like_threshold
+        retweet_ok = True if retweet_threshold is None else retweet_count >= retweet_threshold
+        if like_ok and retweet_ok:
             filtered.append(tweet)
     return filtered
 
@@ -118,13 +121,19 @@ def save_notifications_for_tweets(tweets, slack_ch, notifications_repo):
         else:
             print(f"[BatchWatcher] 既に通知済み: {tweet_uid} {slack_ch}")
 
-def process_setting_for_notification(setting, client, like_threshold, retweet_threshold, notifications_repo):
+def process_setting_for_notification(setting, client, default_like_threshold, default_retweet_threshold, notifications_repo):
     """
     1つの設定に対してTwitter検索・閾値フィルタ・通知保存をまとめて実行
+    設定ごとにlike/retweet_thresholdがあればそれを使う
     """
     keyword = setting.get("keyword")
     slack_ch = setting.get("slack_ch")
-    print(f"[BatchWatcher] 検索キーワード: {keyword} (slack_ch: {slack_ch})")
+    like_threshold = setting.get("like_threshold", default_like_threshold)
+    retweet_threshold = setting.get("retweet_threshold", default_retweet_threshold)
+    # None許容: 0や""はint変換、未設定はNone
+    like_threshold = int(like_threshold) if like_threshold is not None and like_threshold != "" else None
+    retweet_threshold = int(retweet_threshold) if retweet_threshold is not None and retweet_threshold != "" else None
+    print(f"[BatchWatcher] 検索キーワード: {keyword} (slack_ch: {slack_ch}) like_th: {like_threshold} rt_th: {retweet_threshold}")
     tweets = search_tweets_by_keyword(client, keyword)
     print(f"[BatchWatcher] 検索結果: {tweets}")
     filtered_tweets = filter_tweets_by_thresholds(tweets, like_threshold, retweet_threshold)
@@ -135,8 +144,12 @@ def lambda_handler(event, context):
     """
     Lambdaバッチのエントリポイント。全体の流れのみ記述。
     """
-    like_threshold, retweet_threshold = get_thresholds()
-    print(f"[BatchWatcher] LIKE閾値: {like_threshold}, RT閾値: {retweet_threshold}")
+    # デフォルト値は環境変数から取得（全設定で未指定時のfallback用）
+    default_like_threshold = os.environ.get("LIKE_THRESHOLD")
+    default_retweet_threshold = os.environ.get("RETWEET_THRESHOLD")
+    default_like_threshold = int(default_like_threshold) if default_like_threshold is not None else None
+    default_retweet_threshold = int(default_retweet_threshold) if default_retweet_threshold is not None else None
+    print(f"[BatchWatcher] デフォルトLIKE閾値: {default_like_threshold}, デフォルトRT閾値: {default_retweet_threshold}")
     try:
         client = get_twitter_client()
     except Exception as e:
@@ -146,6 +159,6 @@ def lambda_handler(event, context):
     print(f"[BatchWatcher] 有効な設定: {valid_settings}")
     notifications_repo = NotificationsRepository()
     for setting in valid_settings:
-        process_setting_for_notification(setting, client, like_threshold, retweet_threshold, notifications_repo)
+        process_setting_for_notification(setting, client, default_like_threshold, default_retweet_threshold, notifications_repo)
     print("[BatchWatcher] Triggered by EventBridge schedule.")
     return {"statusCode": 200, "body": "Batch executed."}
