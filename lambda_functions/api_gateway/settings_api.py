@@ -5,6 +5,8 @@ import time
 import logging
 from integration.slack_integration import SlackIntegration
 from repositories.settings_repository import SettingsRepository
+from lambda_functions.api_gateway.setting.create import main as create_setting_main
+from lambda_functions.api_gateway.setting.list import main as list_setting_main
 
 
 def get_slack_signing_secret():
@@ -30,16 +32,11 @@ def verify_slack_request(headers, body, signing_secret):
 
 
 def lambda_handler(event, context):
-    # Slack署名検証
-    signing_secret = get_slack_signing_secret()
-    headers = event.get("headers", {})
-    body = event.get("body", "")
-    if not verify_slack_request(headers, body, signing_secret):
-        return {"statusCode": 401, "body": "Invalid Slack signature."}
+    # Slack署名検証はmain.pyで実施済み
     integration = SlackIntegration()
     args = integration.parse_input(event)
 
-    print(f"request with args: {args}, body: {body}")
+    print(f"request with args: {args}, body: {event.get('body', '')}")
     if len(args) < 2 or args[0] != "setting":
         return integration.build_response(
             "コマンド形式が正しくありません。/tweet-watcher setting help を参照してください。"
@@ -48,9 +45,9 @@ def lambda_handler(event, context):
     if action == "help":
         return integration.build_response(help_text())
     elif action == "create":
-        return create_setting(args[2:], integration)
+        return create_setting_main(args[2:], integration)
     elif action == "list":
-        return get_setting(args[2:], integration)
+        return list_setting_main(args[2:], integration)
     elif action == "update":
         return update_setting(args[2:], integration)
     elif action == "update_like_threshold":
@@ -83,30 +80,6 @@ def help_text():
         "/tweet-watcher setting inactive id\n"
         "/tweet-watcher setting help"
     )
-
-
-def create_setting(args, integration):
-    # [キーワード] [slack_ch] [like_threshold] [retweet_threshold]（後ろ2つは任意）
-    if len(args) < 2:
-        return integration.build_response(
-            "[create] パラメータ数が正しくありません。/tweet-watcher setting help を参照してください。"
-        )
-    keyword = args[0]
-    slack_ch = args[1]
-    like_threshold = int(args[2]) if len(args) > 2 and args[2] != "" else None
-    retweet_threshold = int(args[3]) if len(args) > 3 and args[3] != "" else None
-    settings_repo = SettingsRepository()
-    try:
-        resp = settings_repo.put(keyword, slack_ch, like_threshold, retweet_threshold)
-        msg = f"[create] 登録しました: {keyword} {slack_ch} (id: {resp['id']}, publication_status: {resp['publication_status']})"
-        if like_threshold is not None:
-            msg += f" like閾値: {like_threshold}"
-        if retweet_threshold is not None:
-            msg += f" retweet閾値: {retweet_threshold}"
-        return integration.build_response(msg)
-    except Exception as e:
-        logging.error(f"[create] エラーが発生しました: {str(e)}", exc_info=True)
-        return integration.build_response(f"[create] エラー: {str(e)}")
 
 
 def get_setting(args, integration):
