@@ -29,8 +29,32 @@ def test_notify_and_update(mock_boto3_resource, mock_slack_integration):
     event = make_stream_event("uid1", "https://x.com/1", "C12345")
     result = notify_slack_stream.lambda_handler(event, None)
 
+    # blocks形式の呼び出しに合わせて修正
+    expected_blocks = [
+        {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "*新しいツイート通知*"},
+        },
+        {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": "*👍 いいね:* -"},
+                {"type": "mrkdwn", "text": "*🔁 リツイート:* -"},
+            ],
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "ツイートを表示"},
+                    "url": "https://x.com/1",
+                }
+            ],
+        },
+    ]
     mock_slack.send_message.assert_called_once_with(
-        "C12345", "新しいツイート通知: https://x.com/1"
+        "C12345", "新しいツイート通知", blocks=expected_blocks
     )
     mock_table.update_item.assert_called_once()
     args, kwargs = mock_table.update_item.call_args
