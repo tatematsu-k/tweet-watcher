@@ -64,14 +64,40 @@ def lambda_handler(event, context):
             print(
                 f"[notify_slack_stream] レコード {i+1} Slack通知送信開始: channel={slack_ch}"
             )
-            message = f"新しいツイート通知: {tweet_url}"
-            if like_count is not None and retweet_count is not None:
-                message += f"\n👍 いいね: {like_count}  🔁 リツイート: {retweet_count}"
-            elif like_count is not None:
-                message += f"\n👍 いいね: {like_count}"
-            elif retweet_count is not None:
-                message += f"\n🔁 リツイート: {retweet_count}"
-            ts = slack.send_message(slack_ch, message)
+            # blocks形式でリッチ通知
+            blocks = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*新しいツイート通知*"
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*👍 いいね:* {like_count if like_count is not None else '-'}"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*🔁 リツイート:* {retweet_count if retweet_count is not None else '-'}"
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "ツイートを表示"},
+                            "url": tweet_url
+                        }
+                    ]
+                }
+            ]
+            ts = slack.send_message(slack_ch, "新しいツイート通知", blocks=blocks)
             print(f"[notify_slack_stream] レコード {i+1} Slack通知送信成功: ts={ts}")
 
             # notified_atとslack_message_tsを現在時刻・tsで更新

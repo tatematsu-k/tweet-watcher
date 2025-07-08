@@ -44,14 +44,17 @@ class SlackIntegration(IntegrationBase):
             raise Exception(f"Slack API error: {resp_json}")
         return resp_json
 
-    def send_message(self, channel, message, thread_ts=None):
+    def send_message(self, channel, message, thread_ts=None, blocks=None):
         """
         Slack Bot Token方式でchat.postMessage APIを使いメッセージ送信。thread_ts指定でスレッド返信も可能。
+        blocksでリッチメッセージも送信可能。
         戻り値はSlackのメッセージts。
         """
         payload = {"channel": channel, "text": message}
         if thread_ts:
             payload["thread_ts"] = thread_ts
+        if blocks is not None:
+            payload["blocks"] = blocks
         try:
             data = self._slack_api_post("chat.postMessage", payload)
             print(f"[SlackIntegration] Slack API response: {data}")
