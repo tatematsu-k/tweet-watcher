@@ -44,9 +44,11 @@ def lambda_handler(event, context):
         slack_ch = new_image.get("slack_ch", {}).get("S")
         tweet_uid = new_image.get("tweet_uid", {}).get("S")
         notified_at = new_image.get("notified_at", {}).get("S")
+        like_count = int(new_image.get("like_count", {}).get("N", 0)) if "like_count" in new_image else None
+        retweet_count = int(new_image.get("retweet_count", {}).get("N", 0)) if "retweet_count" in new_image else None
 
         print(
-            f"[notify_slack_stream] レコード {i+1} データ: tweet_uid={tweet_uid}, slack_ch={slack_ch}, tweet_url={tweet_url}, notified_at={notified_at}"
+            f"[notify_slack_stream] レコード {i+1} データ: tweet_uid={tweet_uid}, slack_ch={slack_ch}, tweet_url={tweet_url}, notified_at={notified_at}, like_count={like_count}, retweet_count={retweet_count}"
         )
 
         # 冪等性: すでにnotified_atが埋まっていればスキップ
@@ -62,7 +64,14 @@ def lambda_handler(event, context):
             print(
                 f"[notify_slack_stream] レコード {i+1} Slack通知送信開始: channel={slack_ch}"
             )
-            ts = slack.send_message(slack_ch, f"新しいツイート通知: {tweet_url}")
+            message = f"新しいツイート通知: {tweet_url}"
+            if like_count is not None and retweet_count is not None:
+                message += f"\n👍 いいね: {like_count}  🔁 リツイート: {retweet_count}"
+            elif like_count is not None:
+                message += f"\n👍 いいね: {like_count}"
+            elif retweet_count is not None:
+                message += f"\n🔁 リツイート: {retweet_count}"
+            ts = slack.send_message(slack_ch, message)
             print(f"[notify_slack_stream] レコード {i+1} Slack通知送信成功: ts={ts}")
 
             # notified_atとslack_message_tsを現在時刻・tsで更新
