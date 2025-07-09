@@ -1,6 +1,7 @@
 from repositories.settings_repository import SettingsRepository
 from repositories.notifications_repository import NotificationsRepository
 from repositories.x_credential_settings_repository import XCredentialSettingsRepository
+from integration.slack_integration import SlackIntegration
 import json
 import urllib.request
 import urllib.parse
@@ -108,10 +109,12 @@ def filter_tweets_by_thresholds(tweets, like_threshold, retweet_threshold):
     return filtered
 
 
-def save_notifications_for_tweets(tweets, slack_ch, notifications_repo):
+def save_notifications_for_tweets(tweets, slack_ch, notifications_repo, slack_integration=None):
     """
-    通知テーブルに未通知のツイートのみ保存する（重複防止）
+    通知テーブルに未通知のツイートのみ保存し、Slack通知も送信する（重複防止）
     """
+    if slack_integration is None:
+        slack_integration = SlackIntegration()
     for tweet in tweets:
         tweet_uid = str(tweet.id) if hasattr(tweet, "id") else tweet.get("id")
         tweet_url = f"https://twitter.com/i/web/status/{tweet_uid}"
@@ -129,11 +132,18 @@ def save_notifications_for_tweets(tweets, slack_ch, notifications_repo):
             print(
                 f"[BatchWatcher] 通知テーブルに保存: {tweet_uid} {tweet_url} {slack_ch} {like_count} {retweet_count}"
             )
+            # Slack通知送信
+            try:
+                msg = f"新しいツイート: {tweet_url}\n👍 {like_count} 🔁 {retweet_count}"
+                slack_integration.send_message(slack_ch, msg)
+                print(f"[BatchWatcher] Slack通知送信: {slack_ch} {tweet_url}")
+            except Exception as e:
+                print(f"[BatchWatcher] Slack通知失敗: {e}")
         else:
             print(f"[BatchWatcher] 既に通知済み: {tweet_uid} {slack_ch}")
 
 
-def process_setting_for_notification(setting, bearer_token, notifications_repo):
+def process_setting_for_notification(setting, bearer_token, notifications_repo, slack_integration=None):
     """
     1つの設定に対してTwitter検索・閾値フィルタ・通知保存をまとめて実行
     設定ごとにlike/retweet_thresholdがあればそれを使う
@@ -162,7 +172,7 @@ def process_setting_for_notification(setting, bearer_token, notifications_repo):
         tweets, like_threshold, retweet_threshold
     )
     print(f"[BatchWatcher] 閾値通過ツイート: {filtered_tweets}")
-    save_notifications_for_tweets(filtered_tweets, slack_ch, notifications_repo)
+    save_notifications_for_tweets(filtered_tweets, slack_ch, notifications_repo, slack_integration)
 
 
 def lambda_handler(event, context):
@@ -177,7 +187,8 @@ def lambda_handler(event, context):
     valid_settings = get_valid_settings()
     print(f"[BatchWatcher] 有効な設定: {valid_settings}")
     notifications_repo = NotificationsRepository()
+    slack_integration = SlackIntegration()
     for setting in valid_settings:
-        process_setting_for_notification(setting, bearer_token, notifications_repo)
+        process_setting_for_notification(setting, bearer_token, notifications_repo, slack_integration)
     print("[BatchWatcher] Triggered by EventBridge schedule.")
     return {"statusCode": 200, "body": "Batch executed."}
