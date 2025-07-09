@@ -48,12 +48,11 @@ def search_tweets_by_keyword(bearer_token, keyword, max_results=30, error_count=
     params = {
         "query": keyword,
         "max_results": max_results,
-        "tweet.fields": "public_metrics,created_at"
+        "tweet.fields": "public_metrics,created_at",
     }
     full_url = url + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(
-        full_url,
-        headers={"Authorization": f"Bearer {bearer_token}"}
+        full_url, headers={"Authorization": f"Bearer {bearer_token}"}
     )
     try:
         with urllib.request.urlopen(req) as res:
@@ -68,15 +67,21 @@ def search_tweets_by_keyword(bearer_token, keyword, max_results=30, error_count=
             # レートリミット時の処理
             # 必要に応じてリトライやヘッダー参照
             if error_count < 2:
-                print(f"[BatchWatcher] 新しい認証情報で再試行します (試行回数: {error_count + 1})")
+                print(
+                    f"[BatchWatcher] 新しい認証情報で再試行します (試行回数: {error_count + 1})"
+                )
                 try:
                     new_bearer_token = get_twitter_client()
-                    return search_tweets_by_keyword(new_bearer_token, keyword, max_results, error_count + 1)
+                    return search_tweets_by_keyword(
+                        new_bearer_token, keyword, max_results, error_count + 1
+                    )
                 except Exception as retry_error:
                     print(f"[BatchWatcher] 再試行も失敗: {retry_error}")
                     return []
             else:
-                print(f"[BatchWatcher] 最大試行回数に達しました (試行回数: {error_count + 1})")
+                print(
+                    f"[BatchWatcher] 最大試行回数に達しました (試行回数: {error_count + 1})"
+                )
                 return []
         else:
             print(f"HTTPError: {e}")
@@ -109,7 +114,9 @@ def filter_tweets_by_thresholds(tweets, like_threshold, retweet_threshold):
     return filtered
 
 
-def save_notifications_for_tweets(tweets, slack_ch, notifications_repo, slack_integration=None):
+def save_notifications_for_tweets(
+    tweets, slack_ch, notifications_repo, slack_integration=None
+):
     """
     通知テーブルに未通知のツイートのみ保存し、Slack通知も送信する（重複防止）
     """
@@ -143,7 +150,9 @@ def save_notifications_for_tweets(tweets, slack_ch, notifications_repo, slack_in
             print(f"[BatchWatcher] 既に通知済み: {tweet_uid} {slack_ch}")
 
 
-def process_setting_for_notification(setting, bearer_token, notifications_repo, slack_integration=None):
+def process_setting_for_notification(
+    setting, bearer_token, notifications_repo, slack_integration=None
+):
     """
     1つの設定に対してTwitter検索・閾値フィルタ・通知保存をまとめて実行
     設定ごとにlike/retweet_thresholdがあればそれを使う
@@ -172,7 +181,9 @@ def process_setting_for_notification(setting, bearer_token, notifications_repo, 
         tweets, like_threshold, retweet_threshold
     )
     print(f"[BatchWatcher] 閾値通過ツイート: {filtered_tweets}")
-    save_notifications_for_tweets(filtered_tweets, slack_ch, notifications_repo, slack_integration)
+    save_notifications_for_tweets(
+        filtered_tweets, slack_ch, notifications_repo, slack_integration
+    )
 
 
 def lambda_handler(event, context):
@@ -189,6 +200,8 @@ def lambda_handler(event, context):
     notifications_repo = NotificationsRepository()
     slack_integration = SlackIntegration()
     for setting in valid_settings:
-        process_setting_for_notification(setting, bearer_token, notifications_repo, slack_integration)
+        process_setting_for_notification(
+            setting, bearer_token, notifications_repo, slack_integration
+        )
     print("[BatchWatcher] Triggered by EventBridge schedule.")
     return {"statusCode": 200, "body": "Batch executed."}
