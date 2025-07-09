@@ -1,7 +1,10 @@
 from repositories.settings_repository import SettingsRepository
 from repositories.notifications_repository import NotificationsRepository
 from repositories.x_credential_settings_repository import XCredentialSettingsRepository
-import tweepy
+from integration.slack_integration import SlackIntegration
+import json
+import urllib.request
+import urllib.parse
 
 # .env自動ロード（ローカル開発用）
 try:
@@ -14,7 +17,7 @@ except ImportError:
 
 def get_twitter_client():
     """
-    XCredentialSettingsRepositoryから利用可能な認証情報を取得し、Tweepyクライアントを生成する
+    XCredentialSettingsRepositoryから利用可能な認証情報を取得し、Bearer Tokenを返す
     """
     credential_repo = XCredentialSettingsRepository()
     credential = credential_repo.get_available_credential()
@@ -26,7 +29,7 @@ def get_twitter_client():
     if not bearer_token:
         raise Exception("Twitter API認証情報が不足しています")
 
-    return tweepy.Client(bearer_token=bearer_token)
+    return bearer_token
 
 
 def get_valid_settings():
@@ -37,69 +40,54 @@ def get_valid_settings():
     return repo.list_valid_settings().get("Items", [])
 
 
-def search_tweets_by_keyword(client, keyword, max_results=30, error_count=0):
+def fetch_tweets_from_twitter_api(bearer_token, keyword, max_results=30):
     """
-    指定キーワードでTwitter検索を行う
+    Twitter APIに1回だけリクエストし、結果を返す。エラー時は例外を投げる。
     """
-    try:
-        tweets = client.search_recent_tweets(
-            query=keyword,
-            max_results=max_results,
-            tweet_fields=["public_metrics", "created_at"],
-        )
-        return tweets.data if tweets and tweets.data else []
-    except tweepy.TooManyRequests as e:
-        print(f"[BatchWatcher] Twitter検索失敗 (429 Rate Limit): {e}")
-        # Twitter APIのレート制限ヘッダーを表示
-        if hasattr(e, "response") and e.response is not None:
-            headers = e.response.headers
-            print("[BatchWatcher] Rate Limit Headers:")
-            print(f"  x-rate-limit-limit: {headers.get('x-rate-limit-limit', 'N/A')}")
-            print(
-                f"  x-rate-limit-remaining: {headers.get('x-rate-limit-remaining', 'N/A')}"
-            )
-            print(f"  x-rate-limit-reset: {headers.get('x-rate-limit-reset', 'N/A')}")
-            print(f"  retry-after: {headers.get('retry-after', 'N/A')}")
+    url = "https://api.twitter.com/2/tweets/search/recent"
+    params = {
+        "query": keyword,
+        "max_results": max_results,
+        "tweet.fields": "public_metrics,created_at",
+    }
+    full_url = url + "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(
+        full_url, headers={"Authorization": f"Bearer {bearer_token}"}
+    )
+    with urllib.request.urlopen(req) as res:
+        if res.status == 429:
+            raise urllib.error.HTTPError(full_url, 429, "Rate limit exceeded", res.headers, None)
+        data = json.load(res)
+        return data.get("data", [])
 
-            # x-rate-limit-resetヘッダーを取得して認証情報のリセット時間を更新
-            reset_time = headers.get("x-rate-limit-reset")
-            if reset_time:
-                try:
-                    reset_time_int = int(reset_time)
-                    # 現在使用中のbearer_tokenを取得してリセット時間を更新
-                    credential_repo = XCredentialSettingsRepository()
-                    credential = credential_repo.get_available_credential()
-                    if credential and credential.get("bearer_token"):
-                        credential_repo.update_latelimit_reset_time(
-                            credential["bearer_token"], reset_time_int
-                        )
-                        print(
-                            f"[BatchWatcher] レート制限リセット時間を更新: {reset_time_int}"
-                        )
-                except (ValueError, TypeError) as parse_error:
-                    print(f"[BatchWatcher] リセット時間の解析に失敗: {parse_error}")
 
-        # エラー回数が2以下なら再帰的に再試行
-        if error_count < 2:
-            print(
-                f"[BatchWatcher] 新しい認証情報で再試行します (試行回数: {error_count + 1})"
-            )
-            try:
-                new_client = get_twitter_client()
-                return search_tweets_by_keyword(
-                    new_client, keyword, max_results, error_count + 1
-                )
-            except Exception as retry_error:
-                print(f"[BatchWatcher] 再試行も失敗: {retry_error}")
+def search_tweets_by_keyword(bearer_token, keyword, max_results=30, max_retry=2):
+    """
+    指定キーワードでTwitter検索を行う。レートリミット時は認証情報を切り替えてリトライ。
+    """
+    for error_count in range(max_retry + 1):
+        try:
+            return fetch_tweets_from_twitter_api(bearer_token, keyword, max_results)
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                print(f"Rate limit exceeded (HTTPError) [{error_count+1}/{max_retry+1}]")
+                if error_count < max_retry:
+                    try:
+                        bearer_token = get_twitter_client()
+                        continue
+                    except Exception as retry_error:
+                        print(f"[BatchWatcher] 認証情報切り替え失敗: {retry_error}")
+                        return []
+                else:
+                    print(f"[BatchWatcher] 最大試行回数に達しました (試行回数: {error_count + 1})")
+                    return []
+            else:
+                print(f"HTTPError: {e}")
                 return []
-        else:
-            print(
-                f"[BatchWatcher] 最大試行回数に達しました (試行回数: {error_count + 1})"
-            )
+        except Exception as e:
+            print(f"Error: {e}")
             return []
-    except Exception as e:
-        print(f"[BatchWatcher] Twitter検索失敗: {e}")
-        return []
+    return []
 
 
 def filter_tweets_by_thresholds(tweets, like_threshold, retweet_threshold):
@@ -125,10 +113,14 @@ def filter_tweets_by_thresholds(tweets, like_threshold, retweet_threshold):
     return filtered
 
 
-def save_notifications_for_tweets(tweets, slack_ch, notifications_repo):
+def save_notifications_for_tweets(
+    tweets, slack_ch, notifications_repo, slack_integration=None
+):
     """
-    通知テーブルに未通知のツイートのみ保存する（重複防止）
+    通知テーブルに未通知のツイートのみ保存し、Slack通知も送信する（重複防止）
     """
+    if slack_integration is None:
+        slack_integration = SlackIntegration()
     for tweet in tweets:
         tweet_uid = str(tweet.id) if hasattr(tweet, "id") else tweet.get("id")
         tweet_url = f"https://twitter.com/i/web/status/{tweet_uid}"
@@ -146,11 +138,20 @@ def save_notifications_for_tweets(tweets, slack_ch, notifications_repo):
             print(
                 f"[BatchWatcher] 通知テーブルに保存: {tweet_uid} {tweet_url} {slack_ch} {like_count} {retweet_count}"
             )
+            # Slack通知送信
+            try:
+                msg = f"新しいツイート: {tweet_url}\n👍 {like_count} 🔁 {retweet_count}"
+                slack_integration.send_message(slack_ch, msg)
+                print(f"[BatchWatcher] Slack通知送信: {slack_ch} {tweet_url}")
+            except Exception as e:
+                print(f"[BatchWatcher] Slack通知失敗: {e}")
         else:
             print(f"[BatchWatcher] 既に通知済み: {tweet_uid} {slack_ch}")
 
 
-def process_setting_for_notification(setting, client, notifications_repo):
+def process_setting_for_notification(
+    setting, bearer_token, notifications_repo, slack_integration=None
+):
     """
     1つの設定に対してTwitter検索・閾値フィルタ・通知保存をまとめて実行
     設定ごとにlike/retweet_thresholdがあればそれを使う
@@ -173,13 +174,15 @@ def process_setting_for_notification(setting, client, notifications_repo):
     print(
         f"[BatchWatcher] 検索キーワード: {keyword} (slack_ch: {slack_ch}) like_th: {like_threshold} rt_th: {retweet_threshold}"
     )
-    tweets = search_tweets_by_keyword(client, keyword)
+    tweets = search_tweets_by_keyword(bearer_token, keyword)
     print(f"[BatchWatcher] 検索結果: {tweets}")
     filtered_tweets = filter_tweets_by_thresholds(
         tweets, like_threshold, retweet_threshold
     )
     print(f"[BatchWatcher] 閾値通過ツイート: {filtered_tweets}")
-    save_notifications_for_tweets(filtered_tweets, slack_ch, notifications_repo)
+    save_notifications_for_tweets(
+        filtered_tweets, slack_ch, notifications_repo, slack_integration
+    )
 
 
 def lambda_handler(event, context):
@@ -187,14 +190,17 @@ def lambda_handler(event, context):
     Lambdaバッチのエントリポイント。全体の流れのみ記述。
     """
     try:
-        client = get_twitter_client()
+        bearer_token = get_twitter_client()
     except Exception as e:
         print(f"[BatchWatcher] {e}")
         return {"statusCode": 500, "body": str(e)}
     valid_settings = get_valid_settings()
     print(f"[BatchWatcher] 有効な設定: {valid_settings}")
     notifications_repo = NotificationsRepository()
+    slack_integration = SlackIntegration()
     for setting in valid_settings:
-        process_setting_for_notification(setting, client, notifications_repo)
+        process_setting_for_notification(
+            setting, bearer_token, notifications_repo, slack_integration
+        )
     print("[BatchWatcher] Triggered by EventBridge schedule.")
     return {"statusCode": 200, "body": "Batch executed."}
