@@ -71,23 +71,13 @@ Resources:
           Projection:
             ProjectionType: ALL
 
-  LibLayer:
-    Type: AWS::Lambda::LayerVersion
-    Properties:
-      LayerName: LibLayer
-      Content: lib-layer.zip
-      CompatibleRuntimes:
-        - python3.13
-        - python3.11
-
   SettingsApiFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: lambda_functions/api_gateway/main.lambda_handler
       Runtime: python3.13
       CodeUri: .
-      Layers:
-        - !Ref LibLayer
+      Timeout: 10
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TweetWacherSettingsTable
@@ -132,8 +122,6 @@ Resources:
       Runtime: python3.11
       CodeUri: .
       Timeout: 30
-      Layers:
-        - !Ref LibLayer
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref TweetWacherSettingsTable
@@ -165,8 +153,6 @@ Resources:
       Handler: lambda_functions/dynamodb_stream/notify_slack_stream.lambda_handler
       Runtime: python3.11
       CodeUri: .
-      Layers:
-        - !Ref LibLayer
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TweetWacherNotificationsTable

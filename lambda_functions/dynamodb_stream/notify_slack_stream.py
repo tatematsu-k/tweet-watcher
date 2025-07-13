@@ -68,10 +68,6 @@ def lambda_handler(event, context):
             continue
 
         try:
-            # Slack通知送信（Bot方式、thread_tsは現状None）
-            print(
-                f"[notify_slack_stream] レコード {i+1} Slack通知送信開始: channel={slack_ch}"
-            )
             # blocks形式でリッチ通知
             blocks = [
                 {

@@ -19,12 +19,7 @@ rsync -av --exclude='__pycache__' --exclude='.git' --exclude='*.pyc' repositorie
 cp template.yaml samconfig.toml build/
 touch build/__init__.py
 
-# Layer用ディレクトリ・zip作成
-mkdir -p build/layer/python
-pip install -r requirements-prod.txt -t build/layer/python
-cd build/layer
-zip -r ../lib-layer.zip python
-cd ../
+cd build
 
 # 必要な値が取得できているかチェック
 if [ -z "$SLACK_SIGNATURE" ] || [ -z "$SLACK_BOT_TOKEN" ]; then
@@ -46,7 +41,3 @@ sam deploy -t template.yaml --parameter-overrides "${PARAMS[@]}" "$@"
 cd ..
 
 echo "[OK] デプロイ完了"
-
-find lambda_functions/ -name '__pycache__' -type d -exec rm -rf {} +
-find integration/ -name '__pycache__' -type d -exec rm -rf {} +
-find repositories/ -name '__pycache__' -type d -exec rm -rf {} +
