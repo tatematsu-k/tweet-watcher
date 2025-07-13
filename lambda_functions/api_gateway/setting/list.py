@@ -1,5 +1,19 @@
 import logging
 from repositories.settings_repository import SettingsRepository
+from datetime import datetime, timezone, timedelta
+
+
+def format_jst(dt_str):
+    if not dt_str:
+        return "-"
+    try:
+        # ISO8601文字列をパース
+        dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+        # JSTへ変換
+        jst = dt.astimezone(timezone(timedelta(hours=9)))
+        return jst.strftime("%Y/%m/%d %H:%M:%S")
+    except Exception:
+        return dt_str  # パース失敗時はそのまま返す
 
 
 def get_setting(args, integration):
@@ -14,7 +28,7 @@ def get_setting(args, integration):
                 )
             msg = "[list] アクティブな設定一覧:\n" + "\n".join(
                 [
-                    f"{item['id']}: {item['keyword']} {item['slack_ch']} like: {item.get('like_threshold', '-')}, rt: {item.get('retweet_threshold', '-')}"
+                    f"{item['id']}: {item['keyword']} {item['slack_ch']} like: {item.get('like_threshold', '-')}, rt: {item.get('retweet_threshold', '-')} lastExecuted: {format_jst(item.get('lastExecutedTime'))}"
                     for item in items
                 ]
             )
@@ -26,7 +40,7 @@ def get_setting(args, integration):
                 return integration.build_response("[list] 設定が1件もありません")
             msg = "[list] 全設定一覧:\n" + "\n".join(
                 [
-                    f"{item['id']}: {item['keyword']} {item['slack_ch']} (publication_status: {item.get('publication_status', 'unknown')}) like: {item.get('like_threshold', '-')}, rt: {item.get('retweet_threshold', '-')}"
+                    f"{item['id']}: {item['keyword']} {item['slack_ch']} (publication_status: {item.get('publication_status', 'unknown')}) like: {item.get('like_threshold', '-')}, rt: {item.get('retweet_threshold', '-')} lastExecuted: {format_jst(item.get('lastExecutedTime'))}"
                     for item in items
                 ]
             )

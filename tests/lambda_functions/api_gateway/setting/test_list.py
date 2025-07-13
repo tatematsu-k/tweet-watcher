@@ -15,12 +15,13 @@ def integration():
 def test_list_setting_active(monkeypatch, integration):
     class DummyRepo:
         def list_valid_settings(self):
-            return {"Items": [{"id": "id1", "keyword": "kw", "slack_ch": "#ch"}]}
+            return {"Items": [{"id": "id1", "keyword": "kw", "slack_ch": "#ch", "lastExecutedTime": "2024-06-13T12:34:56+09:00"}]}
 
     monkeypatch.setattr(list_mod, "SettingsRepository", lambda: DummyRepo())
     args = []
     resp = list_mod.get_setting(args, integration)
     assert "アクティブな設定一覧" in resp
+    assert "lastExecuted: 2024/06/13 12:34:56" in resp
 
 
 def test_list_setting_all(monkeypatch, integration):
@@ -33,6 +34,7 @@ def test_list_setting_all(monkeypatch, integration):
                         "keyword": "kw",
                         "slack_ch": "#ch",
                         "publication_status": "active",
+                        "lastExecutedTime": "2024-06-13T12:34:56+09:00",
                     }
                 ]
             }
@@ -41,6 +43,7 @@ def test_list_setting_all(monkeypatch, integration):
     args = ["-a"]
     resp = list_mod.get_setting(args, integration)
     assert "全設定一覧" in resp
+    assert "lastExecuted: 2024/06/13 12:34:56" in resp
 
 
 def test_list_setting_param_error(monkeypatch, integration):

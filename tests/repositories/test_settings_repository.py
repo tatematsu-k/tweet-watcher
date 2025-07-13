@@ -18,6 +18,7 @@ def test_put_get_delete_update():
                 "keyword": "kw",
                 "slack_ch": "ch",
                 "publication_status": result["publication_status"],
+                "lastExecutedTime": None,
             }
         )
 
@@ -35,4 +36,12 @@ def test_put_get_delete_update():
             Key={"id": "abc123"},
             UpdateExpression="SET keyword = :keyword",
             ExpressionAttributeValues={":keyword": "kw2"},
+        )
+
+        # update_last_executed_time_by_id: update_item呼び出し
+        repo.update_last_executed_time_by_id("abc123", "2024-06-13T12:34:56+09:00")
+        mock_table.update_item.assert_called_with(
+            Key={"id": "abc123"},
+            UpdateExpression="SET lastExecutedTime = :lastExecutedTime",
+            ExpressionAttributeValues={":lastExecutedTime": "2024-06-13T12:34:56+09:00"},
         )
