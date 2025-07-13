@@ -56,7 +56,9 @@ def fetch_tweets_from_twitter_api(bearer_token, keyword, max_results=30):
     )
     with urllib.request.urlopen(req) as res:
         if res.status == 429:
-            raise urllib.error.HTTPError(full_url, 429, "Rate limit exceeded", res.headers, None)
+            raise urllib.error.HTTPError(
+                full_url, 429, "Rate limit exceeded", res.headers, None
+            )
         data = json.load(res)
         return data.get("data", [])
 
@@ -70,7 +72,9 @@ def search_tweets_by_keyword(bearer_token, keyword, max_results=30, max_retry=2)
             return fetch_tweets_from_twitter_api(bearer_token, keyword, max_results)
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                print(f"Rate limit exceeded (HTTPError) [{error_count+1}/{max_retry+1}]")
+                print(
+                    f"Rate limit exceeded (HTTPError) [{error_count+1}/{max_retry+1}]"
+                )
                 if error_count < max_retry:
                     try:
                         bearer_token = get_twitter_client()
@@ -79,7 +83,9 @@ def search_tweets_by_keyword(bearer_token, keyword, max_results=30, max_retry=2)
                         print(f"[BatchWatcher] 認証情報切り替え失敗: {retry_error}")
                         return []
                 else:
-                    print(f"[BatchWatcher] 最大試行回数に達しました (試行回数: {error_count + 1})")
+                    print(
+                        f"[BatchWatcher] 最大試行回数に達しました (試行回数: {error_count + 1})"
+                    )
                     return []
             else:
                 print(f"HTTPError: {e}")
