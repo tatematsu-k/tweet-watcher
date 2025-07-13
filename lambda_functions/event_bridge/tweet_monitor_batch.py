@@ -5,6 +5,7 @@ from integration.slack_integration import SlackIntegration
 import json
 import urllib.request
 import urllib.parse
+from datetime import datetime, timezone, timedelta
 
 # .env自動ロード（ローカル開発用）
 try:
@@ -189,6 +190,14 @@ def process_setting_for_notification(
     save_notifications_for_tweets(
         filtered_tweets, slack_ch, notifications_repo, slack_integration
     )
+    # 正常に処理が終わったらlastExecutedTimeをJSTのISO8601で保存
+    try:
+        settings_repo = SettingsRepository()
+        now_jst = datetime.now(timezone(timedelta(hours=9))).isoformat()
+        settings_repo.update_last_executed_time_by_id(setting["id"], now_jst)
+        print(f"[BatchWatcher] lastExecutedTime更新: {setting['id']} {now_jst}")
+    except Exception as e:
+        print(f"[BatchWatcher] lastExecutedTime更新失敗: {e}")
 
 
 def lambda_handler(event, context):
@@ -204,6 +213,19 @@ def lambda_handler(event, context):
     print(f"[BatchWatcher] 有効な設定: {valid_settings}")
     notifications_repo = NotificationsRepository()
     slack_integration = SlackIntegration()
+
+    # lastExecutedTimeがnull→古い順でソート
+    def sort_key(setting):
+        t = setting.get("lastExecutedTime")
+        if not t:
+            return (0, None)
+        try:
+            dt = datetime.fromisoformat(t.replace("Z", "+00:00"))
+        except Exception:
+            return (1, None)
+        return (1, dt)
+
+    valid_settings = sorted(valid_settings, key=sort_key)
     for setting in valid_settings:
         process_setting_for_notification(
             setting, bearer_token, notifications_repo, slack_integration

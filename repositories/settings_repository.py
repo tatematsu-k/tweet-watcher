@@ -42,6 +42,7 @@ class SettingsRepository:
             "keyword": keyword,
             "slack_ch": slack_ch,
             "publication_status": publication_status,
+            "lastExecutedTime": None,
         }
         if like_threshold is not None:
             item["like_threshold"] = int(like_threshold)
@@ -117,6 +118,15 @@ class SettingsRepository:
                 int(retweet_threshold) if retweet_threshold is not None else None
             )
         }
+        return self.table.update_item(
+            Key={"id": id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_attr,
+        )
+
+    def update_last_executed_time_by_id(self, id, last_executed_time):
+        update_expr = "SET lastExecutedTime = :lastExecutedTime"
+        expr_attr = {":lastExecutedTime": last_executed_time}
         return self.table.update_item(
             Key={"id": id},
             UpdateExpression=update_expr,
