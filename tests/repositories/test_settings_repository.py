@@ -43,5 +43,7 @@ def test_put_get_delete_update():
         mock_table.update_item.assert_called_with(
             Key={"id": "abc123"},
             UpdateExpression="SET lastExecutedTime = :lastExecutedTime",
-            ExpressionAttributeValues={":lastExecutedTime": "2024-06-13T12:34:56+09:00"},
+            ExpressionAttributeValues={
+                ":lastExecutedTime": "2024-06-13T12:34:56+09:00"
+            },
         )

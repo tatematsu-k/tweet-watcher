@@ -213,6 +213,7 @@ def lambda_handler(event, context):
     print(f"[BatchWatcher] 有効な設定: {valid_settings}")
     notifications_repo = NotificationsRepository()
     slack_integration = SlackIntegration()
+
     # lastExecutedTimeがnull→古い順でソート
     def sort_key(setting):
         t = setting.get("lastExecutedTime")
@@ -223,6 +224,7 @@ def lambda_handler(event, context):
         except Exception:
             return (1, None)
         return (1, dt)
+
     valid_settings = sorted(valid_settings, key=sort_key)
     for setting in valid_settings:
         process_setting_for_notification(

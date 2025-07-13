@@ -15,7 +15,16 @@ def integration():
 def test_list_setting_active(monkeypatch, integration):
     class DummyRepo:
         def list_valid_settings(self):
-            return {"Items": [{"id": "id1", "keyword": "kw", "slack_ch": "#ch", "lastExecutedTime": "2024-06-13T12:34:56+09:00"}]}
+            return {
+                "Items": [
+                    {
+                        "id": "id1",
+                        "keyword": "kw",
+                        "slack_ch": "#ch",
+                        "lastExecutedTime": "2024-06-13T12:34:56+09:00",
+                    }
+                ]
+            }
 
     monkeypatch.setattr(list_mod, "SettingsRepository", lambda: DummyRepo())
     args = []
