@@ -123,7 +123,7 @@ Resources:
       CodeUri: .
       Timeout: 30
       Policies:
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref TweetWacherSettingsTable
         - DynamoDBCrudPolicy:
             TableName: !Ref TweetWacherNotificationsTable
