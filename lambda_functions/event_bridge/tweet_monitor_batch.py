@@ -43,13 +43,18 @@ def get_valid_settings():
 
 def fetch_tweets_from_twitter_api(bearer_token, keyword, max_results=30):
     """
-    Twitter APIに1回だけリクエストし、結果を返す。エラー時は例外を投げる。
+    Twitter APIに1回だけリクエストし、直近1週間分のツイートを取得して結果を返す。エラー時は例外を投げる。
     """
     url = "https://api.twitter.com/2/tweets/search/recent"
+    # 直近1週間のISO8601形式の日時を計算
+    now = datetime.now(timezone.utc)
+    one_week_ago = now - timedelta(days=7)
+    start_time = one_week_ago.isoformat(timespec="seconds").replace("+00:00", "Z")
     params = {
         "query": keyword,
         "max_results": max_results,
         "tweet.fields": "public_metrics,created_at",
+        "start_time": start_time,
     }
     full_url = url + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(
